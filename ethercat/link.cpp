@@ -8,28 +8,6 @@
 
 using namespace ethercat;
 
-namespace ethercat
-{
-	// Implementation borrowed from the Boost::ASIO docs.
-	class SendBuffer
-	{
-	public:
-		explicit SendBuffer(const Link::PacketBuffer& data, int size) : data(data)
-		{
-			buf = boost::asio::buffer(this->data, size);
-		}
-
-	typedef boost::asio::const_buffer value_type;
-	typedef const boost::asio::const_buffer* const_iterator;
-	const boost::asio::const_buffer* begin() const { return &buf; }
-	const boost::asio::const_buffer* end() const { return &buf + 1; }
-
-	private:
-		const Link::PacketBuffer data;
-		boost::asio::const_buffer buf; 
-	};
-}
-
 Link::Link(std::string iface, ReceivedCallback callback) : 
 	recvStrand(io),
 	ifName(iface), 
@@ -61,16 +39,24 @@ Link::~Link()
 	ethernetThread.join();
 }
 
-void Link::SendData(PacketBuffer data, int length)
+void Link::SendData(PacketBuffer& data, int length)
 {
 	// Create the buffer object to send on...
-	SendBuffer buf(data, length);
-	socket.async_send(buf, boost::bind(&Link::HandleWrite, this));
+	// This performs a copy so we can extend the lifetime of the object
+	PacketBufferPointer buf(new PacketBuffer(data));
+	SendData(buf, length);
 }
 
-void Link::HandleWrite()
+void Link::SendData(PacketBufferPointer data, int length)
+{
+	socket.async_send(boost::asio::buffer(*data, length), boost::bind(&Link::HandleWrite, this, data));
+}
+
+void Link::HandleWrite(PacketBufferPointer data)
 {
 	// Nothing to do here...
+	// This just takes an argument to extend the lifetime of the data to
+	// be written and stop it from being destroyed.
 }
 
 void Link::HandleReceive(const boost::system::error_code& e, size_t bytes)

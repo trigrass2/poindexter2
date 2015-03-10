@@ -3,7 +3,7 @@ LD=g++
 CXXFLAGS=-fPIC
 LDFLAGS=-shared -fPIC
 
-OBJS=link.o
+OBJS=link.o ethernet.o
 
 all: libethercat.so
 

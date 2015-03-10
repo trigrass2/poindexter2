@@ -1,4 +1,4 @@
-#include "link.h"
+#include "ethernet.h"
 #include <iostream>
 
 void got_data(ethercat::Link* link, ethercat::Link::PacketBuffer& buf, int length)
@@ -10,36 +10,15 @@ int main()
 {
 	std::cout << "Hello World!\n";
 
-	ethercat::Link link("enp4s0", got_data);
+	ethercat::Ethernet::MACAddr macAddr = { 0x11, 0x22, 0x33, 0x44, 0x55, 0x66 };
+	ethercat::Ethernet eth("enp4s0", macAddr);
 
-	// Create a packet and send it!
-	ethercat::Link::PacketBuffer buf;
+	ethercat::Ethernet::PacketBuffer data;
+	data[0] = 0xFF;
 
-	for(int i = 0; i < ETHERNET_MTU; i++)
-		buf[i] = 0x0;
+	eth.SendData(data, 1);
 
-	buf[0] = 0xFF;
-	buf[1] = 0xFF;
-	buf[2] = 0xFF;
-	buf[3] = 0xFF;
-	buf[4] = 0xFF;
-	buf[5] = 0xFF;
-
-	buf[6] = 0x11;
-	buf[7] = 0x22;
-	buf[8] = 0x33;
-	buf[9] = 0x44;
-	buf[10] = 0x55;
-	buf[11] = 0x66;
-
-	buf[12] = 0x88;
-	buf[13] = 0xA4;
-
-	link.SendData(buf, 14);
-
-	std::cout << "Waiting for death...\n";
 	for(volatile int i = 0; i < INT_MAX; i++);
-	std::cout << "Dying...\n";
-	
+
 	return 0;
 }
