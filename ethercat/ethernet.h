@@ -20,7 +20,7 @@ public:
 	// Ethernet payload packet.
 	typedef boost::array<unsigned char, ETHERNET_MTU> PacketBuffer;
 	typedef boost::array<unsigned char, ETHERNET_MAC_SIZE> MACAddr;
-	typedef boost::function3<void, Ethernet*, PacketBuffer&, int> ReceivedCallback
+	typedef boost::function3<void, Ethernet*, PacketBuffer&, int> ReceivedCallback;
 
 	// Create a new Link on this interface
 	Ethernet(std::string ifName, MACAddr macAddr, ReceivedCallback callback); 

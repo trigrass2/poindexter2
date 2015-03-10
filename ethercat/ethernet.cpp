@@ -2,7 +2,7 @@
  * This just takes input data, adds on the MAC
  * layer, and forwards it on to the link layer
  */
- 
+
 #include "ethernet.h"
 #include <boost/cstdlib.hpp>
 
@@ -18,8 +18,8 @@ void Ethernet::NewPacket(Link* link, Link::PacketBuffer& packet, int length)
 {
 	// Strip out the guff and forward it on
 	Ethernet::PacketBuffer ethPkt;
-	unsigned char* ethData = ethPkt->data();
-	unsigned char* linkData = packet->data();
+	unsigned char* ethData = ethPkt.data();
+	unsigned char* linkData = packet.data();
 	memcpy(ethData, linkData + ETHERNET_PREAMBLE_SIZE, length);
 
 	recvCallback(this, ethPkt, length);
