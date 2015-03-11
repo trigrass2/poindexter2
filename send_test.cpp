@@ -1,6 +1,8 @@
-#include "link.h"
+#include <link.h>
+#include <datagram.h>
+#include <datagram_broadcast.h>
+#include <packet.h>
 #include <iostream>
-
 
 int main()
 {
@@ -9,25 +11,13 @@ int main()
 
 	EtherCAT::Link link("enp4s0", macAddr);
 	EtherCAT::Link::EthernetPayload payload;
+	EtherCAT::Datagram::Pointer dgram(new EtherCAT::Datagram(50));
+	EtherCAT::Datagram::Pointer dgram2(new EtherCAT::DatagramBRD(50, 0x8));
+	EtherCAT::Packet pkt;
 
-	// Make a dummy packet
-	// The datagram has just the header and WKC, so is 12 bytes long
-	// This has to be made up to 44 bytes due to padding though
-	// Obviously, this is a bad test. This is a manually crafted
-	// packet just to ensure that something works.
-	unsigned char len = 44;
-	payload[1] = 0x10 | ((len >> 8) & 0x07);
-	payload[0] = len & 0xFF;
-
-	// And zero the rest!
-	for(int i = 3; i < len + 2; i++)
-		payload[i] = 0;
-
-	payload[2] = 0x7; // Broadcast read
-	payload[8] = 0x1; // Length = 1
-
-	// Transmit
-	link.SendData(payload, 46);
+	pkt.AddDatagram(dgram);
+	pkt.AddDatagram(dgram2);
+	pkt.SendReceive(link);
 
 	return 0;
 }
