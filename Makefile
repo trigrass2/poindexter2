@@ -7,8 +7,11 @@ LDFLAGS=-L./ethercat -lethercat -lboost_system -lboost_thread
 
 all: send_test
 
-send_test: $(OBJS) ethercat/libethercat.so
+send_test: $(OBJS) libethercat.so
 	$(LD) $(LDFLAGS) -o $@ $^
+
+libethercat.so: ethercat/libethercat.so
+	cp $< $@
 
 ethercat/libethercat.so:
 	make -C ethercat
