@@ -18,7 +18,7 @@ public:
 	{
 		this->header->cmd = DGRAM_CMD_FPRD;
 		this->header->address |= (address << 16);
-		this->header->address |= (-slavePos & 0xFFFF);
+		this->header->address |= (slavePos & 0xFFFF);
 	}
 };
 
@@ -29,18 +29,18 @@ public:
 	{
 		this->header->cmd = DGRAM_CMD_FPWR;
 		this->header->address |= (address << 16);
-		this->header->address |= (-slavePos & 0xFFFF);
+		this->header->address |= (slavePos & 0xFFFF);
 	}
 };
 
 class DatagramFPRW : public Datagram
 {
 public:
-	DatagramBFPW(int payload_length, uint16_t slavePos, uint16_t address) : Datagram(payload_length)
+	DatagramFPRW(int payload_length, uint16_t slavePos, uint16_t address) : Datagram(payload_length)
 	{
 		this->header->cmd = DGRAM_CMD_FPRW;
 		this->header->address |= (address << 16);
-		this->header->address |= (-slavePos & 0xFFFF);
+		this->header->address |= (slavePos & 0xFFFF);
 	}
 };
 

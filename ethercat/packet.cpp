@@ -19,7 +19,7 @@ void Packet::AddDatagram(Datagram::Pointer& dgram)
 	payloadPtr += dgram->datagram_length();
 }
 
-void Packet::SendReceive(Link& link)
+void Packet::SendReceive(Link::Pointer link)
 {
 	int dgram_pos = 0;
 
@@ -27,8 +27,9 @@ void Packet::SendReceive(Link& link)
 	uint16_t packet_length = payloadPtr;
 
 	// Is it too small? Round up if so.
-	if(packet_length < 44)
-		packet_length = 44;
+	// OMG MAGIC NUMBERS!
+	if(packet_length < ETHERCAT_MINIMUM_PAYLOAD)
+		packet_length = ETHERCAT_MINIMUM_PAYLOAD;
 
 	payload[0] = packet_length & 0xFF;       // Pack the length, little endian, 11 bits 
 	payload[1] = (packet_length >> 8) & 0x7;
@@ -48,13 +49,16 @@ void Packet::SendReceive(Link& link)
 		dgram_pos += ptr->datagram_length();
 	}
 
+	if(dgram_pos < (ETHERCAT_MINIMUM_PAYLOAD + ETHERCAT_PACKET_HEADER_LENGTH))
+		dgram_pos = (ETHERCAT_MINIMUM_PAYLOAD + ETHERCAT_PACKET_HEADER_LENGTH);
+
 	// Send it!
-	link.SendData(payload, dgram_pos);
+	link->SendData(payload, dgram_pos);
 
 	// Receive it back again
-	int length = link.ReceiveData(payload);
+	int length = link->ReceiveData(payload);
 	if(length != dgram_pos)
-		std::cerr << "Length mismatch. Sent " << dgram_pos << " bytes, got " << length << " bytes." << std::endl;
+		std::cerr << "WARNING: Length mismatch. Sent " << dgram_pos << " bytes, got " << length << " bytes." << std::endl;
 
 	// Unpack that back into the datagrams.
 	dgram_pos = 2;
@@ -68,4 +72,8 @@ void Packet::SendReceive(Link& link)
 		memcpy(ptr->data(), payload.data() + dgram_pos, ptr->datagram_length());
 		dgram_pos += ptr->datagram_length();
 	}
+
+	// Nuke the contents of the packet
+	datagrams.clear();
+	payloadPtr = 0;
 }
