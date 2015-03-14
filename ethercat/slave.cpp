@@ -27,6 +27,7 @@ Slave::Slave(Link::Pointer link, uint16_t index) : link(link)
 		          << " build " << build
 		          << " numFMMU " << (int)numFMMU
 		          << " numSM " << (int)numSyncManager
+		          << " PDI Control " << (int)readBytePositional(link, index, SLAVE_PDI_CONTROL)
 		          << std::endl;
 
 	// Remap
@@ -50,6 +51,60 @@ Slave::Slave(Link::Pointer link, uint16_t index) : link(link)
 Slave::~Slave()
 {
 
+}
+
+void Slave::ReadEEPROM(uint32_t address, uint8_t* data, int count)
+{
+	while(count)
+	{
+		// Issue the address
+		// I'm not totally sure on the docs here, so this is kinda playing 
+		// and seeing what actually works...
+		// Assume a 16-bit interface for now, then change in the specific implementation
+
+		// Assert it's idle
+		uint16_t status = 0;
+		do
+		{
+			status = readShortConfigured(this->link, this->slaveAddr, SLAVE_EEPROM_CONTROL);
+			status &= SLAVE_EEPROM_CONTROL_COMMAND_MASK;
+		} while(status != SLAVE_EEPROM_CONTROL_COMMAND_IDLE);
+
+		// Write out the address
+		writeWordConfigured(this->link, this->slaveAddr, SLAVE_EEPROM_ADDRESS, address & 0xFFFF);
+
+		// Then the go command
+		status = readShortConfigured(this->link, this->slaveAddr, SLAVE_EEPROM_CONTROL);
+		status |= SLAVE_EEPROM_CONTROL_COMMAND_READ;
+		writeShortConfigured(this->link, this->slaveAddr, SLAVE_EEPROM_CONTROL, status);
+
+		// Wait for completion
+		do
+		{
+			status = readShortConfigured(this->link, this->slaveAddr, SLAVE_EEPROM_CONTROL);
+			status &= SLAVE_EEPROM_CONTROL_COMMAND_MASK;
+		} while(status != SLAVE_EEPROM_CONTROL_COMMAND_IDLE);
+
+		// Get the data
+		uint16_t read_data = readShortConfigured(this->link, this->slaveAddr, SLAVE_EEPROM_DATA);
+
+		// This will have already been endian-flipped. Do it back again.
+		if(count == 1)
+		{
+			address++;
+			count--;
+
+			*data++ = read_data & 0xFF;
+		}
+		else
+		{	
+			count -= 2;
+			address++;  // I think it's word-addressed...
+
+			*data++ = read_data & 0xFF;
+			*data++ = (read_data >> 8) & 0xFF;
+		}
+	}
 }
 
 int Slave::NumSlaves(Link::Pointer link)
@@ -240,6 +295,58 @@ void Slave::writeShortPositional(Link::Pointer link, uint16_t slaveIdx, uint16_t
 void Slave::writeWordPositional(Link::Pointer link, uint16_t slaveIdx, uint16_t address, uint32_t data)
 {
 	Datagram::Pointer datagram(new DatagramAPWR(4, slaveIdx, address));
+
+	// Return the first byte
+	Packet pkt;
+	datagram->payload_ptr()[0] = data & 0xFF;
+	datagram->payload_ptr()[1] = (data >> 8) & 0xFF;
+	datagram->payload_ptr()[2] = (data >> 16) & 0xFF;
+	datagram->payload_ptr()[3] = (data >> 24) & 0xFF;
+	pkt.AddDatagram(datagram);
+	pkt.SendReceive(link);
+
+	// Check the working counter
+	if(datagram->working_counter() == 0)
+		throw std::out_of_range("slaveIdx");
+}
+
+void Slave::writeByteConfigured(Link::Pointer link, uint16_t slaveIdx, uint16_t address, uint8_t data)
+{
+	Datagram::Pointer datagram(new DatagramFPWR(1, slaveIdx, address));
+
+	// Return the first byte
+	Packet pkt;
+	datagram->payload_ptr()[0] = data;
+	pkt.AddDatagram(datagram);
+	pkt.SendReceive(link);
+
+	// Check the working counter
+	if(datagram->working_counter() == 0)
+		throw std::out_of_range("slaveIdx");
+}
+
+void Slave::writeShortConfigured(Link::Pointer link, uint16_t slaveIdx, uint16_t address, uint16_t data)
+{
+	Datagram::Pointer datagram(new DatagramFPWR(2, slaveIdx, address));
+
+	// Return the first byte
+	Packet pkt;
+
+	// Unpack little-endian
+	datagram->payload_ptr()[0] = data & 0xFF;
+	datagram->payload_ptr()[1] = (data >> 8) & 0xFF;
+
+	pkt.AddDatagram(datagram);
+	pkt.SendReceive(link);
+
+	// Check the working counter
+	if(datagram->working_counter() == 0)
+		throw std::out_of_range("slaveIdx");
+}
+
+void Slave::writeWordConfigured(Link::Pointer link, uint16_t slaveIdx, uint16_t address, uint32_t data)
+{
+	Datagram::Pointer datagram(new DatagramFPWR(4, slaveIdx, address));
 
 	// Return the first byte
 	Packet pkt;

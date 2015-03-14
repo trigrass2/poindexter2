@@ -7,12 +7,12 @@ LDFLAGS=-L./ethercat -lethercat -lboost_system -lboost_thread
 
 all: send_test
 
-.PHONY: libethercat.so clean
+.PHONY: libethercat clean
 
-send_test: $(OBJS) libethercat.so
-	$(LD) $(LDFLAGS) -o $@ $^
+send_test: $(OBJS) libethercat
+	$(LD) $(LDFLAGS) -o $@ $(OBJS)
 
-libethercat.so:
+libethercat:
 	make -C ethercat
 
 clean:

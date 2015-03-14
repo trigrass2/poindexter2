@@ -27,6 +27,11 @@ public:
 	Slave(Link::Pointer link, uint16_t index);
 	virtual ~Slave();
 
+	// Read the EEPROM
+	// This provides a default, dumb implementation.
+	// Tailor this for the actual Slave ESC being used
+	virtual void ReadEEPROM(uint32_t address, uint8_t* data, int count);
+
 	// Static helpers
 	static int NumSlaves(Link::Pointer link);
 	static uint8_t SlaveType(Link::Pointer link, uint16_t slaveIdx);
@@ -37,6 +42,9 @@ private:
 	static uint8_t readByteConfigured(Link::Pointer link, uint16_t slaveIdx, uint16_t address);
 	static uint16_t readShortConfigured(Link::Pointer link, uint16_t slaveIdx, uint16_t address);
 	static uint32_t readWordConfigured(Link::Pointer link, uint16_t slaveIdx, uint16_t address);
+	static void writeByteConfigured(Link::Pointer link, uint16_t slaveIdx, uint16_t address, uint8_t data);
+	static void writeShortConfigured(Link::Pointer link, uint16_t slaveIdx, uint16_t address, uint16_t data);
+	static void writeWordConfigured(Link::Pointer link, uint16_t slaveIdx, uint16_t address, uint32_t data);
 
 	// Positional variants
 	static uint8_t readBytePositional(Link::Pointer link, uint16_t slaveIdx, uint16_t address);
