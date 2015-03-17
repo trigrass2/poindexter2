@@ -25,6 +25,15 @@ public:
 class Slave : public std::enable_shared_from_this<Slave>
 {
 public:
+	enum class State
+	{
+		INIT,
+		PREOP,
+		SAFEOP,
+		OP,
+		BOOT
+	};
+
 	typedef std::shared_ptr<Slave> Pointer;
 
 	Slave(Link::Pointer link, uint16_t index);
@@ -50,12 +59,23 @@ public:
 	void WriteShort(uint16_t address, uint16_t data) { writeShortConfigured(link, slaveAddr, address, data); }
 	void WriteWord(uint16_t address, uint32_t data)  { writeWordConfigured(link, slaveAddr, address, data); }
 
+	void ChangeState(State newState);
+
+	// These are this way by convention.
+	// Override in a derived class if required
+	virtual SyncManager::Pointer SyncManagerOutMBox() { return syncManagers[0]; }
+	virtual SyncManager::Pointer SyncManagerInMBox()  { return syncManagers[1]; }
+	virtual SyncManager::Pointer SyncManagerOutPDO()  { return syncManagers[2]; }
+	virtual SyncManager::Pointer SyncManagerInPDO()   { return syncManagers[3]; }
+
 	// Static helpers
 	static int NumSlaves(Link::Pointer link);
 	static uint8_t SlaveType(Link::Pointer link, uint16_t slaveIdx);
 	static uint8_t SlaveRev(Link::Pointer link, uint16_t slaveIdx);
 	static uint16_t SlaveBuild(Link::Pointer link, uint16_t slaveIdx);
 private:
+	void awaitALChange();
+
 	// Configured address variants
 	static uint8_t readByteConfigured(Link::Pointer link, uint16_t slaveIdx, uint16_t address);
 	static uint16_t readShortConfigured(Link::Pointer link, uint16_t slaveIdx, uint16_t address);
@@ -81,6 +101,8 @@ private:
 	uint8_t numFMMU;
 	uint8_t numSyncManager;
 	uint16_t slaveAddr;
+
+	State state;
 
 	std::vector<SyncManager::Pointer> syncManagers;
 	std::vector<FMMU::Pointer> FMMUs;

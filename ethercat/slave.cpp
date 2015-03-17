@@ -51,6 +51,32 @@ Slave::Slave(Link::Pointer link, uint16_t index) : link(link)
 
 void Slave::Init()
 {
+	// Attempt to move to the PREOP state
+	// Read the current state
+	uint16_t alState = ReadShort(SLAVE_AL_STATUS);
+
+	switch(alState & SLAVE_AL_STATE_MASK)
+	{
+	case SLAVE_AL_STATE_INIT:
+		state = State::INIT;
+		std::cerr << "STATE INIT" << std::endl;
+		break;
+	case SLAVE_AL_STATE_PREOP:
+		state = State::PREOP;
+		std::cerr << "STATE PREOP" << std::endl;
+		break;
+	case SLAVE_AL_STATE_SAFEOP:
+		state = State::SAFEOP;
+		std::cerr << "STATE SAFEOP" << std::endl;
+		break;
+	case SLAVE_AL_STATE_OP:
+		state = State::OP;
+		std::cerr << "STATE OP" << std::endl;
+		break;
+	default:
+		throw SlaveException("Unknown AL state");
+	}
+
 	// Create the SyncManagers
 	for(int sm = 0; sm < numSyncManager; sm++)
 	{
@@ -62,6 +88,64 @@ void Slave::Init()
 Slave::~Slave()
 {
 
+}
+
+void Slave::ChangeState(State newState)
+{
+	if(newState == state)
+		return;
+
+	// Assert that we can actually move between these states...
+	// All backwards transisitons are OK. We can't hop two forwards though...
+	switch(state)
+	{
+	case State::INIT:
+		if(newState == State::SAFEOP || newState == State::OP)
+			throw SlaveException("Invalid state transition");
+		break;
+	case State::PREOP:
+		if(newState == State::OP)
+			throw SlaveException("Invalid state transition");
+		break;
+	}
+
+	uint16_t newStateBits;
+	switch(newState)
+	{
+	case State::INIT:
+		newStateBits = SLAVE_AL_STATE_INIT;
+		break;
+	case State::PREOP:
+		newStateBits = SLAVE_AL_STATE_PREOP;
+		break;
+	case State::SAFEOP:
+		newStateBits = SLAVE_AL_STATE_SAFEOP;
+		break;
+	case State::OP:
+		newStateBits = SLAVE_AL_STATE_OP;
+		break;
+	}
+
+	// Write the state and wait
+	uint16_t alControl = ReadShort(SLAVE_AL_CONTROL);
+	alControl &= ~SLAVE_AL_STATE_MASK;
+	alControl |= (newStateBits & SLAVE_AL_STATE_MASK);
+	WriteShort(SLAVE_AL_CONTROL, alControl);
+
+	awaitALChange();
+	uint16_t alStatus = ReadShort(SLAVE_AL_STATUS);
+	if((alStatus & SLAVE_AL_STATE_MASK) != newStateBits)
+		throw SlaveException("State transition failed");
+}
+
+void Slave::awaitALChange()
+{
+	uint16_t alState = 0;
+
+	do
+	{
+		alState = ReadShort(SLAVE_ECAT_EVENT_REQUEST);
+	} while((alState & SLAVE_ECAT_EVENT_ALSTATUS_MASK) == 0);
 }
 
 void Slave::ReadEEPROM(uint32_t address, uint8_t* data, int count)

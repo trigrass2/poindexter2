@@ -14,24 +14,11 @@ int main()
 	int nSlaves = EtherCAT::Slave::NumSlaves(link);
 	std::cout << "Found " << nSlaves << " slaves" << std::endl;
 
-	EtherCAT::Slave::Pointer slaves[nSlaves];
+	// We're only going to play with the first slave for now.
+	EtherCAT::Slave::Pointer slave(new EtherCAT::Slave(link, 0));
+	slave->Init();
 
-	for(int i = 0; i < nSlaves; i++)
-	{
-		slaves[i] = EtherCAT::Slave::Pointer(new EtherCAT::Slave(link, i));
-		slaves[i]->Init();
-	}
-
-	// Now read the EEPROM of the first one
-	// uint8_t buf[EEPROM_READ_SIZE];
-	// slaves[0]->ReadEEPROM(0, buf, EEPROM_READ_SIZE);
-
-	// for(int i = 0; i < EEPROM_READ_SIZE; i++)
-	// {
-	// 	std::cout << buf[i];
-	// }
-
-	// std::cout << std::endl << std::dec;
+	
 
 	return 0;
 }
