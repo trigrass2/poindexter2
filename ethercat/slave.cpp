@@ -28,6 +28,7 @@ Slave::Slave(Link::Pointer link, uint16_t index) : link(link)
 		          << " numFMMU " << (int)numFMMU
 		          << " numSM " << (int)numSyncManager
 		          << " PDI Control " << (int)readBytePositional(link, index, SLAVE_PDI_CONTROL)
+		          << " ESC Features " << std::hex << readShortPositional(link, index, SLAVE_ESC_FEATURES) << std::dec
 		          << std::endl;
 
 	// Remap
@@ -45,6 +46,16 @@ Slave::Slave(Link::Pointer link, uint16_t index) : link(link)
 	catch(std::out_of_range& ex)
 	{
 		throw SlaveException("Setting station address failed.");
+	}
+}
+
+void Slave::Init()
+{
+	// Create the SyncManagers
+	for(int sm = 0; sm < numSyncManager; sm++)
+	{
+		SyncManager::Pointer syncManager(new SyncManager(shared_from_this(), sm));
+		syncManagers.push_back(syncManager);
 	}
 }
 

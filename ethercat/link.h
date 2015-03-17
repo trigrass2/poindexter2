@@ -4,7 +4,7 @@
 #include <string>
 #include <boost/asio.hpp>
 #include <boost/array.hpp>
-#include <boost/shared_ptr.hpp>
+#include <memory>
 
 #define ETHERNET_MTU 1500
 #define ETHERNET_PROLOG 14
@@ -18,7 +18,7 @@ class Link
 {
 public:
 	typedef boost::array<unsigned char, ETHERNET_MTU> EthernetPayload;
-	typedef boost::shared_ptr<Link> Pointer;
+	typedef std::shared_ptr<Link> Pointer;
 
 	Link(const std::string iface, const unsigned char macAddr[6]);
 

@@ -2,7 +2,7 @@
 #define __DATAGRAM_H__
 
 #include <boost/cstdint.hpp>
-#include <boost/shared_ptr.hpp>
+#include <memory>
 
 #define DGRAM_HDR_LEN_MASK 0x7F
 #define DGRAM_HDR_C_MASK 0x4000
@@ -33,7 +33,7 @@ struct __attribute__((packed)) DatagramHeader
 class Datagram
 {
 public:
-	typedef boost::shared_ptr<Datagram> Pointer;
+	typedef std::shared_ptr<Datagram> Pointer;
 	Datagram(int payload_length);
 	virtual ~Datagram();
 

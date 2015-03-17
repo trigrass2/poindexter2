@@ -2,8 +2,8 @@ CXX=g++
 LD=g++
 OBJS=send_test.o
 
-CXXFLAGS=-I./ethercat
-LDFLAGS=-L./ethercat -lethercat -lboost_system -lboost_thread
+CXXFLAGS=-I./ethercat -std=c++11
+LDFLAGS=-L./ethercat -lethercat -lboost_system -lboost_thread -std=c++11
 
 all: send_test
 
