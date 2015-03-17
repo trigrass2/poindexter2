@@ -5,6 +5,8 @@
 #include <memory>
 #include <boost/cstdint.hpp>
 
+#define SYNCMANAGER_MAILBOX_HEADER_LEN 6
+
 namespace EtherCAT
 {
 
@@ -27,6 +29,15 @@ public:
 		Write   // ECAT write, PDI read
 	};
 
+	enum class MailboxType
+	{
+		Vendor,  // Vendor specific
+		EoE,     // Ethernet-over-EtherCAT
+		CoE,     // CANOpen-over-EtherCAT
+		FoE,     // File transfer over EtherCAT
+		SoE      // Servo-over-EtherCAT
+	};
+
 	typedef std::shared_ptr<SyncManager> Pointer;
 	SyncManager(SlavePointer slave, uint8_t syncManagerIndex);
 
@@ -36,14 +47,20 @@ public:
 	Direction TransferDirection() { return control_direction; }
 	bool      Enabled()           { return enabled; }
 
+	bool MailboxFull();
+
 	void StartAddr(uint16_t addr);
 	void Length(uint16_t length);
 	void OperationMode(OpMode newMode);
 	void TransferDirection(Direction newDir);
+	void ECATInterrupt(bool intr);
+	void PDIInterrupt(bool intr);
 
 	void Enable();
 	void Disable();
 
+	void WriteMailbox(MailboxType type, uint8_t* payload, int length);
+	int ReadMailbox(MailboxType* type, uint8_t* payload, int max_length);
 
 private:
 	SlavePointer slave;
@@ -52,6 +69,7 @@ private:
 	// SM registers
 	uint16_t startAddr;
 	uint16_t length;
+	uint8_t sequenceNumber;
 
 	OpMode control_opmode;
 	Direction control_direction;

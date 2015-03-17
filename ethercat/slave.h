@@ -48,6 +48,7 @@ public:
 
 	uint8_t NumFMMUs() { return numFMMU; }
 	uint8_t NumSyncManager() { return numSyncManager; }
+	uint16_t SlaveAddress() { return slaveAddr; }
 
 	// Access memory space.
 	// It is recommended to not use there where possible...
@@ -58,6 +59,9 @@ public:
 	void WriteByte(uint16_t address, uint8_t data)   { writeByteConfigured(link, slaveAddr, address, data); }
 	void WriteShort(uint16_t address, uint16_t data) { writeShortConfigured(link, slaveAddr, address, data); }
 	void WriteWord(uint16_t address, uint32_t data)  { writeWordConfigured(link, slaveAddr, address, data); }
+
+	void ReadData(uint16_t address, uint8_t* data, uint16_t length);
+	void WriteData(uint16_t address, uint8_t* data, uint16_t length);
 
 	void ChangeState(State newState);
 

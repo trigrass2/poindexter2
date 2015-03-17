@@ -457,4 +457,39 @@ void Slave::writeWordConfigured(Link::Pointer link, uint16_t slaveIdx, uint16_t 
 		throw std::out_of_range("slaveIdx");
 }
 
+void Slave::ReadData(uint16_t address, uint8_t* data, uint16_t length)
+{
+	Datagram::Pointer datagram(new DatagramFPRD(length, slaveAddr, address));
+
+	Packet pkt;
+	pkt.AddDatagram(datagram);
+	pkt.SendReceive(link);
+
+	// Check the working counter
+	if(datagram->working_counter() == 0)
+		throw std::out_of_range("slaveIdx");
+
+	// Copy the data out
+	uint8_t* payload = datagram->payload_ptr();
+	while(length--)
+		*data++ = *payload++;
+}
+
+void Slave::WriteData(uint16_t address, uint8_t* data, uint16_t length)
+{
+	Datagram::Pointer datagram(new DatagramFPWR(length, slaveAddr, address));
+
+	// Copy data in
+	uint8_t* payload = datagram->payload_ptr();
+	while(length--)
+		*payload++ = *data++;
+
+	Packet pkt;
+	pkt.AddDatagram(datagram);
+	pkt.SendReceive(link);
+
+	if(datagram->working_counter() == 0)
+		throw std::out_of_range("slaveIdx");
+}
+
 int Slave::newSlaveAddr = SLAVEADDR_BASE;

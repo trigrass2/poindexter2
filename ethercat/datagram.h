@@ -4,7 +4,7 @@
 #include <boost/cstdint.hpp>
 #include <memory>
 
-#define DGRAM_HDR_LEN_MASK 0x7F
+#define DGRAM_HDR_LEN_MASK 0x7FF
 #define DGRAM_HDR_C_MASK 0x4000
 #define DGRAM_HDR_C_SHIFT 14
 #define DGRAM_HDR_M_MASK 0x8000

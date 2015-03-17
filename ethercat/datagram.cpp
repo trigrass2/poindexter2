@@ -2,6 +2,7 @@
 
 #include <cstring>
 #include <boost/cstdlib.hpp>
+#include <iostream>
 
 using namespace EtherCAT;
 

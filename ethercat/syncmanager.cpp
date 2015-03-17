@@ -170,3 +170,114 @@ void SyncManager::Disable()
 
 	enabled = false;
 }
+
+void SyncManager::ECATInterrupt(bool intr)
+{
+	if(enabled)
+		throw SlaveException("Tried to change ECATInterrupt when SyncManager enabled");
+
+	uint8_t control = slave->ReadByte(SYNCMANAGER_ADDR(SLAVE_SYNCMANAGER_CONTROL, syncManagerIndex));
+	control &= ~SLAVE_SYNCMANAGER_CONTROL_INTR_ECAT_MASK;
+
+	if(intr)
+		control |= SLAVE_SYNCMANAGER_CONTROL_INTR_ECAT_MASK;
+
+	slave->WriteByte(SYNCMANAGER_ADDR(SLAVE_SYNCMANAGER_CONTROL, syncManagerIndex), control);
+	this->control_ecat_intr = intr;
+}
+
+void SyncManager::PDIInterrupt(bool intr)
+{
+	if(enabled)
+		throw SlaveException("Tried to change PDIInterrupt when SyncManager enabled");
+
+	uint8_t control = slave->ReadByte(SYNCMANAGER_ADDR(SLAVE_SYNCMANAGER_CONTROL, syncManagerIndex));
+	control &= ~SLAVE_SYNCMANAGER_CONTROL_INTR_PDI_MASK;
+
+	if(intr)
+		control |= SLAVE_SYNCMANAGER_CONTROL_INTR_PDI_MASK;
+
+	slave->WriteByte(SYNCMANAGER_ADDR(SLAVE_SYNCMANAGER_CONTROL, syncManagerIndex), control);
+	this->control_pdi_intr = intr;
+}
+
+bool SyncManager::MailboxFull()
+{
+	if(control_opmode != OpMode::Mailbox)
+		throw SlaveException("Cannot query mailboxfull; SyncManager is not a mailbox");
+
+	uint8_t status = slave->ReadByte(SYNCMANAGER_ADDR(SLAVE_SYNCMANAGER_STATUS, syncManagerIndex));
+	if(status & SLAVE_SYNCMANAGER_STATUS_MAILBOX_FULL_MASK)
+		return true;
+	else
+		return false;
+}
+
+void SyncManager::WriteMailbox(MailboxType type, uint8_t* payload, int length)
+{
+	if(control_opmode != OpMode::Mailbox)
+		throw SlaveException("Cannot write to a mailbox on a non-mailbox SyncManager");
+	if(control_direction != Direction::Write)
+		throw SlaveException("Tried to write to a non-output SyncManager");
+
+	// For the PDI to care, we seem to have to write the last byte for the SyncManager
+	// Force this here...
+	int payload_length = length;
+	if(length + SYNCMANAGER_MAILBOX_HEADER_LEN < this->length)
+		length = this->length - SYNCMANAGER_MAILBOX_HEADER_LEN;
+
+	// Create the packet
+	// TODO: Try and reduce the number of copies...
+	// TODO: MAGIC NUMBERS. MAGIC NUMBERS EVERYWHERE.
+	// TODO: This is (very) badly written. Sorry.
+	uint8_t telegram[length + SYNCMANAGER_MAILBOX_HEADER_LEN];
+
+	// Set the header
+	uint16_t len_16bit = length;
+	uint16_t destAddr = slave->SlaveAddress(); // TODO: Is this correct?
+
+	telegram[0] = len_16bit & 0xFF;
+	telegram[1] = (len_16bit >> 8) & 0xFF;
+	telegram[2] = destAddr & 0xFF;
+	telegram[3] = (destAddr >> 8) & 0xFF;
+	telegram[4] = 0x0; // Channel reserved. Leave priority at 0
+
+	switch(type)
+	{
+	case MailboxType::Vendor:
+		telegram[5] = 0x1;
+		break;
+	case MailboxType::EoE:
+		telegram[5] = 0x2;
+		break;
+	case MailboxType::CoE:
+		telegram[5] = 0x3;
+		break;
+	case MailboxType::FoE:
+		telegram[5] = 0x4;
+		break;
+	case MailboxType::SoE:
+		telegram[5] = 0x5;
+		break;
+	}
+
+	//telegram[5] |= (sequenceNumber << 1) & 0xE;
+
+	// Copy the payload in
+	uint8_t* telegramWritePointer = telegram;
+	telegramWritePointer += SYNCMANAGER_MAILBOX_HEADER_LEN;
+
+	while(length--)
+	{
+		if(payload_length)
+		{
+			*telegramWritePointer++ = *payload++;
+			payload_length--;
+		}
+		else
+			*telegramWritePointer++ = 0;
+	}
+
+	// Send it!
+	slave->WriteData(this->startAddr, telegram, len + SYNCMANAGER_MAILBOX_HEADER_LEN);
+}

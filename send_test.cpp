@@ -29,18 +29,42 @@ int main()
 	EtherCAT::SyncManager::Pointer outMBox = slave->SyncManagerOutMBox();
 	EtherCAT::SyncManager::Pointer inMBox = slave->SyncManagerInMBox();
 
+	outMBox->Disable();
 	outMBox->StartAddr(AX2000_MBOX_OUT_ADDR);
 	outMBox->Length(AX2000_MBOX_OUT_SIZE);
 	outMBox->OperationMode(EtherCAT::SyncManager::OpMode::Mailbox);
 	outMBox->TransferDirection(EtherCAT::SyncManager::Direction::Write);
+	outMBox->PDIInterrupt(true);
+	outMBox->Enable();
 
+	inMBox->Disable();
 	inMBox->StartAddr(AX2000_MBOX_IN_ADDR);
 	inMBox->Length(AX2000_MBOX_IN_SIZE);
 	inMBox->OperationMode(EtherCAT::SyncManager::OpMode::Mailbox);
 	inMBox->TransferDirection(EtherCAT::SyncManager::Direction::Read);
+	inMBox->PDIInterrupt(true);
+	inMBox->Enable();
 
 	slave->ChangeState(EtherCAT::Slave::State::PREOP);
 
+	// Write dummy data to a mailbox to test
+	uint8_t dummyCAN[512 - 6];
+	uint16_t coeHeader;
+	coeHeader = 0x1000;
+	dummyCAN[0] = coeHeader & 0xFF;
+	dummyCAN[1] = (coeHeader >> 8) & 0xFF;
+
+	if(outMBox->MailboxFull())
+	{
+		std::cout << "OH NO" << std::endl;
+		return 1;
+	}
+
+	outMBox->WriteMailbox(EtherCAT::SyncManager::MailboxType::CoE, dummyCAN, 512 - 6);;
+	while(outMBox->MailboxFull()) std::cout << "Mailbox pending..." << std::endl;
+	std::cout << "Mailbox written..." << std::endl;
+	while(!inMBox->MailboxFull()) std::cout << "Reading mailbox..." << std::endl;
+	std::cout << "Mailbox done" << std::endl;
 
 	return 0;
 }
