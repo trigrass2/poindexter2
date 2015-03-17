@@ -82,3 +82,91 @@ SyncManager::SyncManager(Slave::Pointer slave, uint8_t syncManagerIndex) : slave
 
 	std::cerr << std::endl;
 }
+
+void SyncManager::StartAddr(uint16_t addr)
+{
+	if(enabled)
+		throw SlaveException("Tried to change StartAddr when SyncManager enabled");
+	
+	this->startAddr = addr;
+	slave->WriteShort(SYNCMANAGER_ADDR(SLAVE_SYNCMANAGER_STARTADDR, syncManagerIndex), startAddr);
+}
+
+void SyncManager::Length(uint16_t length)
+{
+	if(enabled)
+		throw SlaveException("Tried to change Length when SyncManager enabled");
+
+	this->length = length;
+	slave->WriteShort(SYNCMANAGER_ADDR(SLAVE_SYNCMANAGER_LENGTH, syncManagerIndex), length);
+}
+	
+void SyncManager::OperationMode(OpMode newMode)
+{
+	if(enabled)
+		throw SlaveException("Tried to change OperationMode when SyncManager enabled");
+
+	// Read control
+	uint8_t control = slave->ReadByte(SYNCMANAGER_ADDR(SLAVE_SYNCMANAGER_CONTROL, syncManagerIndex));
+	control &= ~SLAVE_SYNCMANAGER_CONTROL_OPMODE_MASK;
+
+	switch(newMode)
+	{
+	case OpMode::Buffered:
+		control |= SLAVE_SYNCMANAGER_CONTROL_OPMODE_BUFFERED;
+		break;
+	case OpMode::Mailbox:
+		control |= SLAVE_SYNCMANAGER_CONTROL_OPMODE_MAILBOX;
+		break;
+	}
+
+	slave->WriteByte(SYNCMANAGER_ADDR(SLAVE_SYNCMANAGER_CONTROL, syncManagerIndex), control);
+	this->control_opmode = newMode;
+}
+
+void SyncManager::TransferDirection(Direction dir)
+{
+	if(enabled)
+		throw SlaveException("Tried to change TransferDirection when SyncManager enabled");
+
+	// Read control
+	uint8_t control = slave->ReadByte(SYNCMANAGER_ADDR(SLAVE_SYNCMANAGER_CONTROL, syncManagerIndex));
+	control &= ~SLAVE_SYNCMANAGER_CONTROL_DIRECTION_MASK;
+
+	switch(dir)
+	{
+	case Direction::Read:
+		control |= SLAVE_SYNCMANAGER_CONTROL_DIRECTION_READ;
+		break;
+	case Direction::Write:
+		control |= SLAVE_SYNCMANAGER_CONTROL_DIRECTION_WRITE;
+		break;
+	}
+
+	slave->WriteByte(SYNCMANAGER_ADDR(SLAVE_SYNCMANAGER_CONTROL, syncManagerIndex), control);
+	this->control_direction = dir;
+}
+
+void SyncManager::Enable()
+{
+	if(enabled)
+		return;
+
+	uint8_t activate = slave->ReadByte(SYNCMANAGER_ADDR(SLAVE_SYNCMANAGER_ACTIVATE, syncManagerIndex));
+	activate |= SLAVE_SYNCMANAGER_ACTIVATE_ACTIVE_MASK;
+	slave->WriteByte(SYNCMANAGER_ADDR(SLAVE_SYNCMANAGER_ACTIVATE, syncManagerIndex), activate);
+
+	enabled = false;
+}
+
+void SyncManager::Disable()
+{
+	if(!enabled)
+		return;
+
+	uint8_t activate = slave->ReadByte(SYNCMANAGER_ADDR(SLAVE_SYNCMANAGER_ACTIVATE, syncManagerIndex));
+	activate &= ~SLAVE_SYNCMANAGER_ACTIVATE_ACTIVE_MASK;
+	slave->WriteByte(SYNCMANAGER_ADDR(SLAVE_SYNCMANAGER_ACTIVATE, syncManagerIndex), activate);
+
+	enabled = false;
+}

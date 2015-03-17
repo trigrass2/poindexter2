@@ -30,6 +30,21 @@ public:
 	typedef std::shared_ptr<SyncManager> Pointer;
 	SyncManager(SlavePointer slave, uint8_t syncManagerIndex);
 
+	uint16_t  StartAddr()         { return startAddr; }
+	uint16_t  Length()            { return length; }
+	OpMode    OperationMode()     { return control_opmode; }
+	Direction TransferDirection() { return control_direction; }
+	bool      Enabled()           { return enabled; }
+
+	void StartAddr(uint16_t addr);
+	void Length(uint16_t length);
+	void OperationMode(OpMode newMode);
+	void TransferDirection(Direction newDir);
+
+	void Enable();
+	void Disable();
+
+
 private:
 	SlavePointer slave;
 	int syncManagerIndex;
