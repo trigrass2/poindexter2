@@ -279,5 +279,5 @@ void SyncManager::WriteMailbox(MailboxType type, uint8_t* payload, int length)
 	}
 
 	// Send it!
-	slave->WriteData(this->startAddr, telegram, len + SYNCMANAGER_MAILBOX_HEADER_LEN);
+	slave->WriteData(this->startAddr, telegram, len_16bit + SYNCMANAGER_MAILBOX_HEADER_LEN);
 }
