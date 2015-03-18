@@ -281,3 +281,73 @@ void SyncManager::WriteMailbox(MailboxType type, uint8_t* payload, int length)
 	// Send it!
 	slave->WriteData(this->startAddr, telegram, len_16bit + SYNCMANAGER_MAILBOX_HEADER_LEN);
 }
+
+int SyncManager::ReadMailbox(MailboxType* type, uint8_t* payload, int max_length)
+{
+	// TODO: Should these be std::logic_exceptions?
+	// TODO: MORE MAGIC NUMBERS. YET MORE MAGIC NUMBERS EVERYWHERE.
+	if(control_opmode != OpMode::Mailbox)
+		throw SlaveException("Cannot read from a mailbox on a non-mailbox SyncManager");
+	if(control_direction != Direction::Read)
+		throw SlaveException("Tried to read to a non-input SyncManager");
+
+	// Make sure there's something there...
+	if(!this->MailboxFull())
+		return 0; // TODO: Should this be an exception?
+
+	// Read the whole mailbox.
+	// This is because we need to read from the last byte to trigger the "done"
+	uint8_t mailboxMessage[this->length];
+
+	slave->ReadData(this->startAddr, mailboxMessage, this->length);
+
+	// Now parse and copy out
+	// Endian swaps...
+	uint16_t payloadLength = mailboxMessage[0];
+	payloadLength |= mailboxMessage[1] << 8;
+
+	uint16_t stationAddr = mailboxMessage[2];
+	stationAddr |= mailboxMessage[3] << 8;
+
+	// Can ignore mailboxMessage[4]
+
+	uint8_t messageType = mailboxMessage[5] & 0xF;
+	MailboxType returnType;
+
+	switch(messageType)
+	{
+	case 0x1:
+	case 0xF:
+		returnType = MailboxType::Vendor;
+		break;
+	case 0x2:
+		returnType = MailboxType::EoE;
+		break;
+	case 0x3:
+		returnType = MailboxType::CoE;
+		break;
+	case 0x4:
+		returnType = MailboxType::FoE;
+		break;
+	case 0x5:
+		returnType = MailboxType::SoE;
+		break;
+	default:
+		throw SlaveException("Unknown SyncManager mailbox type");
+	}
+
+	if(type != NULL)
+		*type = returnType;
+
+	// Copy out the contents
+	uint8_t* messageReadPointer = mailboxMessage;
+	messageReadPointer += SYNCMANAGER_MAILBOX_HEADER_LEN;
+	int numBytes = 0;
+	while(numBytes < max_length && numBytes < payloadLength)
+	{
+		*payload++ = *messageReadPointer++;
+		numBytes++;
+	}
+
+	return numBytes;
+}

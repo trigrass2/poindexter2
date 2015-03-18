@@ -48,7 +48,7 @@ int main()
 	slave->ChangeState(EtherCAT::Slave::State::PREOP);
 
 	// Write dummy data to a mailbox to test
-	uint8_t dummyCAN[512 - 6];
+	uint8_t dummyCAN[16];
 	uint16_t coeHeader;
 	coeHeader = 0x1000;
 	dummyCAN[0] = coeHeader & 0xFF;
@@ -60,11 +60,24 @@ int main()
 		return 1;
 	}
 
-	outMBox->WriteMailbox(EtherCAT::SyncManager::MailboxType::CoE, dummyCAN, 512 - 6);;
+	EtherCAT::SyncManager::MailboxType type = EtherCAT::SyncManager::MailboxType::Vendor;
+
+	outMBox->WriteMailbox(EtherCAT::SyncManager::MailboxType::CoE, dummyCAN, 16);;
 	while(outMBox->MailboxFull()) std::cout << "Mailbox pending..." << std::endl;
 	std::cout << "Mailbox written..." << std::endl;
 	while(!inMBox->MailboxFull()) std::cout << "Reading mailbox..." << std::endl;
 	std::cout << "Mailbox done" << std::endl;
+
+	int readLen = inMBox->ReadMailbox(&type, dummyCAN, 16);
+
+	// Dump the contents...
+	if(type != EtherCAT::SyncManager::MailboxType::CoE)
+		std::cout << "Incorrect telegram type..." << std::endl;
+
+	for(int i = 0; i < readLen; i++)
+		std::cout << std::hex << (uint32_t)dummyCAN[i];
+	std::cout << std::dec << std::endl;
+	std::cout << "Length: " << readLen << std::endl;
 
 	return 0;
 }
