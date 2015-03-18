@@ -5,6 +5,17 @@
 #include "syncmanager.h"
 #include <memory>
 
+#define COE_HEADER_SIZE 2
+#define CANOPEN_MESSAGE_SIZE 8
+#define CANOPEN_SDO_SIZE (COE_HEADER_SIZE + CANOPEN_MESSAGE_SIZE) // Two bytes of header, eight of payload.
+
+#define COE_HEADER_TYPE_MASK 0xF000
+#define COE_HEADER_TYPE_SDO_REQUEST  (2 << 12)
+#define COE_HEADER_TYPE_SDO_RESPONSE (3 << 12)
+
+#define SDO_COMMAND_MASK 0xE0
+#define SDO_COMMAND_UPLOAD (2 << 5)
+
 namespace EtherCAT
 {
 
@@ -26,7 +37,7 @@ public:
 private:
 	SyncManager::Pointer outMBox;
 	SyncManager::Pointer inMBox;
-	
+
 };
 
 }
