@@ -50,9 +50,20 @@ int main()
 	// Write dummy data to a mailbox to test
 	uint8_t dummyCAN[16];
 	uint16_t coeHeader;
-	coeHeader = 0x1000;
+	coeHeader = 0x2000;    // SDO request, number 0, res 0
 	dummyCAN[0] = coeHeader & 0xFF;
 	dummyCAN[1] = (coeHeader >> 8) & 0xFF;
+
+	// Pack the SDO header
+	dummyCAN[2] = 0;
+	dummyCAN[2] |= (0x2 << 5); // Initiate download request
+
+	// Read the index
+	uint16_t index = 0x1002; // Device type
+	dummyCAN[3] = index & 0xFF;
+	dummyCAN[4] = (index >> 8) & 0xFF;
+	dummyCAN[5] = 0; // No sub-index
+	// Ignore the data...
 
 	if(outMBox->MailboxFull())
 	{
@@ -62,7 +73,7 @@ int main()
 
 	EtherCAT::SyncManager::MailboxType type = EtherCAT::SyncManager::MailboxType::Vendor;
 
-	outMBox->WriteMailbox(EtherCAT::SyncManager::MailboxType::CoE, dummyCAN, 16);;
+	outMBox->WriteMailbox(EtherCAT::SyncManager::MailboxType::CoE, dummyCAN, 10);;
 	while(outMBox->MailboxFull()) std::cout << "Mailbox pending..." << std::endl;
 	std::cout << "Mailbox written..." << std::endl;
 	while(!inMBox->MailboxFull()) std::cout << "Reading mailbox..." << std::endl;

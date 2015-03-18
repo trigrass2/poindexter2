@@ -236,8 +236,8 @@ void SyncManager::WriteMailbox(MailboxType type, uint8_t* payload, int length)
 	uint16_t len_16bit = length;
 	uint16_t destAddr = slave->SlaveAddress(); // TODO: Is this correct?
 
-	telegram[0] = len_16bit & 0xFF;
-	telegram[1] = (len_16bit >> 8) & 0xFF;
+	telegram[0] = payload_length & 0xFF;
+	telegram[1] = (payload_length >> 8) & 0xFF;
 	telegram[2] = destAddr & 0xFF;
 	telegram[3] = (destAddr >> 8) & 0xFF;
 	telegram[4] = 0x0; // Channel reserved. Leave priority at 0
