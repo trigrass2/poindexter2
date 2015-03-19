@@ -17,6 +17,14 @@
 #define AX2000_PDO_IN_ADDR  0x1140
 #define AX2000_PDO_IN_SIZE  8
 
+#define AX2000_FMMU_OUT_PHYSADDR 0x1100
+#define AX2000_FMMU_OUT_LENGTH   8
+#define AX2000_FMMU_OUT_LOGICALADDR 0x10000
+
+#define AX2000_FMMU_IN_PHYSADDR 0x1140
+#define AX2000_FMMU_IN_LENGTH 8
+#define AX2000_FMMU_IN_LOGICALADDR 0x20000
+
 int main()
 {
 	std::cout << "Hello World!\n";
@@ -98,6 +106,32 @@ int main()
 	inPDO->TransferDirection(EtherCAT::SyncManager::Direction::Read);
 	inPDO->PDIInterrupt(true);
 	inPDO->Enable();
+
+	// Now the FMMUs
+	EtherCAT::FMMU::Pointer outFMMU = slave->FMMUOut();
+	EtherCAT::FMMU::Pointer inFMMU  = slave->FMMUIn();
+
+	outFMMU->Disable();
+	outFMMU->LogicalStart(AX2000_FMMU_OUT_LOGICALADDR);
+	outFMMU->Length(AX2000_FMMU_OUT_LENGTH);
+	outFMMU->LogicalStartBit(0);
+	outFMMU->LogicalStopBit(7);
+	outFMMU->PhysicalStart(AX2000_FMMU_OUT_PHYSADDR);
+	outFMMU->PhysicalStartBit(0);
+	outFMMU->WriteActive(true);
+	outFMMU->ReadActive(false);
+	outFMMU->Enable();
+
+	inFMMU->Disable();
+	inFMMU->LogicalStart(AX2000_FMMU_IN_LOGICALADDR);
+	inFMMU->Length(AX2000_FMMU_IN_LENGTH);
+	inFMMU->LogicalStartBit(0);
+	inFMMU->LogicalStopBit(7);
+	inFMMU->PhysicalStart(AX2000_FMMU_IN_PHYSADDR);
+	inFMMU->PhysicalStartBit(0);
+	inFMMU->WriteActive(false);
+	inFMMU->ReadActive(true);
+	inFMMU->Enable();
 
 	slave->ChangeState(EtherCAT::Slave::State::SAFEOP);
 

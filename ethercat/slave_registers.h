@@ -63,6 +63,9 @@
 #define SLAVE_AL_STATE_SAFEOP 0x4
 #define SLAVE_AL_STATE_OP    0x8
 
+#define SLAVE_AL_STATUS_CODE      0x134
+#define SLAVE_AL_STATUS_CODE_SIZE 2
+
 #define SLAVE_AL_ERROR_MASK  (0x1 << 4)
 #define SLAVE_AL_IDENT_MASK  (0x1 << 5)
 
@@ -90,6 +93,23 @@
 // TODO: Make this configurable. It's 4 bytes on ESC20, 8 on others.
 #define SLAVE_EEPROM_DATA			0x508
 #define SLAVE_EEPROM_DATA_SIZE		4
+
+#define FMMU_ADDR(base, index) (base + SLAVE_FMMU_OFFSET*index)
+#define SLAVE_FMMU_BASE              0x600
+#define SLAVE_FMMU_OFFSET            16
+#define SLAVE_FMMU_LOGICAL_START     0x600
+#define SLAVE_FMMU_LENGTH            0x604
+#define SLAVE_FMMU_LOGICAL_START_BIT 0x606
+#define SLAVE_FMMU_LOGICAL_STOP_BIT  0x607
+#define SLAVE_FMMU_PHYSICAL_START    0x608
+#define SLAVE_FMMU_PHYSICAL_START_BIT 0x60A
+#define SLAVE_FMMU_TYPE              0x60B
+#define SLAVE_FMMU_ACTIVATE          0x60C
+
+#define SLAVE_FMMU_TYPE_READ_MASK    0x1
+#define SLAVE_FMMU_TYPE_WRITE_MASK   0x2
+
+#define SLAVE_FMMU_ACTIVATE_ACTIVE_MASK 0x1
 
 #define SYNCMANAGER_ADDR(base, index) (base + SLAVE_SYNCMANAGER_OFFSET*index)
 #define SLAVE_SYNCMANAGER_BASE      0x800

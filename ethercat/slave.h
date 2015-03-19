@@ -72,6 +72,9 @@ public:
 	virtual SyncManager::Pointer SyncManagerOutPDO()  { return syncManagers[2]; }
 	virtual SyncManager::Pointer SyncManagerInPDO()   { return syncManagers[3]; }
 
+	virtual FMMU::Pointer FMMUOut() { return FMMUs[0]; }
+	virtual FMMU::Pointer FMMUIn()  { return FMMUs[1]; }
+
 	// Static helpers
 	static int NumSlaves(Link::Pointer link);
 	static uint8_t SlaveType(Link::Pointer link, uint16_t slaveIdx);

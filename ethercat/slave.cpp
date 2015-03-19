@@ -83,6 +83,12 @@ void Slave::Init()
 		SyncManager::Pointer syncManager(new SyncManager(shared_from_this(), sm));
 		syncManagers.push_back(syncManager);
 	}
+
+	for(int fmmu = 0; fmmu < numFMMU; fmmu++)
+	{
+		FMMU::Pointer f(new FMMU(shared_from_this(), fmmu));
+		FMMUs.push_back(f);
+	}
 }
 
 Slave::~Slave()
@@ -134,8 +140,14 @@ void Slave::ChangeState(State newState)
 
 	awaitALChange();
 	uint16_t alStatus = ReadShort(SLAVE_AL_STATUS);
+	std::cerr << "AL Status: " << std::hex << alStatus << std::dec << std::endl;
 	if((alStatus & SLAVE_AL_STATE_MASK) != newStateBits)
+	{
+		// But why?
+		uint16_t alStatusCode = ReadShort(SLAVE_AL_STATUS_CODE);
+		std::cerr << "AL Status code: " << std::hex << alStatusCode << std::dec << std::endl;
 		throw SlaveException("State transition failed");
+	}
 
 	state = newState;
 }
