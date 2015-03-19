@@ -136,6 +136,8 @@ void Slave::ChangeState(State newState)
 	uint16_t alStatus = ReadShort(SLAVE_AL_STATUS);
 	if((alStatus & SLAVE_AL_STATE_MASK) != newStateBits)
 		throw SlaveException("State transition failed");
+
+	state = newState;
 }
 
 void Slave::awaitALChange()
