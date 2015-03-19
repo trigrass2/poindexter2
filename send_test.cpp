@@ -1,5 +1,6 @@
 #include <link.h>
 #include <slave.h>
+#include <canopen.h>
 #include <iostream>
 
 #define EEPROM_READ_SIZE 4096
@@ -10,6 +11,11 @@
 #define AX2000_MBOX_OUT_SIZE 512
 #define AX2000_MBOX_IN_ADDR  0x1c00
 #define AX2000_MBOX_IN_SIZE  512
+
+#define AX2000_PDO_OUT_ADDR 0x1100
+#define AX2000_PDO_OUT_SIZE 8
+#define AX2000_PDO_IN_ADDR  0x1140
+#define AX2000_PDO_IN_SIZE  8
 
 int main()
 {
@@ -47,48 +53,53 @@ int main()
 
 	slave->ChangeState(EtherCAT::Slave::State::PREOP);
 
-	// Write dummy data to a mailbox to test
-	uint8_t dummyCAN[16];
-	uint16_t coeHeader;
-	coeHeader = 0x2000;    // SDO request, number 0, res 0
-	dummyCAN[0] = coeHeader & 0xFF;
-	dummyCAN[1] = (coeHeader >> 8) & 0xFF;
 
-	// Pack the SDO header
-	dummyCAN[2] = 0;
-	dummyCAN[2] |= (0x2 << 5); // Initiate download request
+	// Create the CANopen wrapper and test
+	EtherCAT::CANopen::Pointer can(new EtherCAT::CANopen(outMBox, inMBox));
 
-	// Read the index
-	uint16_t index = 0x1002; // Device type
-	dummyCAN[3] = index & 0xFF;
-	dummyCAN[4] = (index >> 8) & 0xFF;
-	dummyCAN[5] = 0; // No sub-index
-	// Ignore the data...
+	// Play with the time period
+	// Try and shut the error up!
+	uint32_t retVal = can->ReadSDO(0x6061, 0);
+	std::cout << "State: " << retVal << std::endl;
+	can->WriteSDO(0x6060, 0, 0xFE, 1);
+	retVal = can->ReadSDO(0x6061, 0);
+	std::cout << "State: " << retVal << std::endl;
 
-	if(outMBox->MailboxFull())
-	{
-		std::cout << "OH NO" << std::endl;
-		return 1;
-	}
+	retVal = can->ReadSDO(0x60c2, 1);
+	std::cout << "Interpolation time units: " << retVal << std::endl;
+	can->WriteSDO(0x60c2, 1, 20, 1);
 
-	EtherCAT::SyncManager::MailboxType type = EtherCAT::SyncManager::MailboxType::Vendor;
+	retVal = can->ReadSDO(0x60c2, 1);
+	std::cout << "Interpolation time units: " << retVal << std::endl;
 
-	outMBox->WriteMailbox(EtherCAT::SyncManager::MailboxType::CoE, dummyCAN, 10);;
-	while(outMBox->MailboxFull()) std::cout << "Mailbox pending..." << std::endl;
-	std::cout << "Mailbox written..." << std::endl;
-	while(!inMBox->MailboxFull()) std::cout << "Reading mailbox..." << std::endl;
-	std::cout << "Mailbox done" << std::endl;
+	retVal = can->ReadSDO(0x60c2, 2);
+	std::cout << "Interpolation time index: " << retVal << std::endl;
+	can->WriteSDO(0x60c2, 2, -3, 1);
 
-	int readLen = inMBox->ReadMailbox(&type, dummyCAN, 16);
+	retVal = can->ReadSDO(0x60c2, 2);
+	std::cout << "Interpolation time index: " << retVal << std::endl;
 
-	// Dump the contents...
-	if(type != EtherCAT::SyncManager::MailboxType::CoE)
-		std::cout << "Incorrect telegram type..." << std::endl;
+	// Set up the other sync managers
+	EtherCAT::SyncManager::Pointer outPDO = slave->SyncManagerOutPDO();
+	EtherCAT::SyncManager::Pointer inPDO  = slave->SyncManagerInPDO();
 
-	for(int i = 0; i < readLen; i++)
-		std::cout << std::hex << (uint32_t)dummyCAN[i];
-	std::cout << std::dec << std::endl;
-	std::cout << "Length: " << readLen << std::endl;
+	outPDO->Disable();
+	outPDO->StartAddr(AX2000_PDO_OUT_ADDR);
+	outPDO->Length(AX2000_PDO_OUT_SIZE);
+	outPDO->OperationMode(EtherCAT::SyncManager::OpMode::Buffered);
+	outPDO->TransferDirection(EtherCAT::SyncManager::Direction::Write);
+	outPDO->PDIInterrupt(true);
+	outPDO->Enable();
+
+	inPDO->Disable();
+	inPDO->StartAddr(AX2000_PDO_IN_ADDR);
+	inPDO->Length(AX2000_PDO_IN_SIZE);
+	inPDO->OperationMode(EtherCAT::SyncManager::OpMode::Buffered);
+	inPDO->TransferDirection(EtherCAT::SyncManager::Direction::Read);
+	inPDO->PDIInterrupt(true);
+	inPDO->Enable();
+
+	slave->ChangeState(EtherCAT::Slave::State::SAFEOP);
 
 	return 0;
 }
