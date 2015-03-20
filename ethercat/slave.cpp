@@ -152,6 +152,49 @@ void Slave::ChangeState(State newState)
 	state = newState;
 }
 
+void Slave::ChangeStateASync(State newState)
+{
+	if(newState == state)
+		return;
+
+	// Assert that we can actually move between these states...
+	// All backwards transisitons are OK. We can't hop two forwards though...
+	switch(state)
+	{
+	case State::INIT:
+		if(newState == State::SAFEOP || newState == State::OP)
+			throw SlaveException("Invalid state transition");
+		break;
+	case State::PREOP:
+		if(newState == State::OP)
+			throw SlaveException("Invalid state transition");
+		break;
+	}
+
+	uint16_t newStateBits;
+	switch(newState)
+	{
+	case State::INIT:
+		newStateBits = SLAVE_AL_STATE_INIT;
+		break;
+	case State::PREOP:
+		newStateBits = SLAVE_AL_STATE_PREOP;
+		break;
+	case State::SAFEOP:
+		newStateBits = SLAVE_AL_STATE_SAFEOP;
+		break;
+	case State::OP:
+		newStateBits = SLAVE_AL_STATE_OP;
+		break;
+	}
+
+	// Write the state and wait
+	uint16_t alControl = ReadShort(SLAVE_AL_CONTROL);
+	alControl &= ~SLAVE_AL_STATE_MASK;
+	alControl |= (newStateBits & SLAVE_AL_STATE_MASK);
+	WriteShort(SLAVE_AL_CONTROL, alControl);
+}
+
 void Slave::awaitALChange()
 {
 	uint16_t alState = 0;

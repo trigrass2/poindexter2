@@ -64,6 +64,7 @@ public:
 	void WriteData(uint16_t address, uint8_t* data, uint16_t length);
 
 	void ChangeState(State newState);
+	void ChangeStateASync(State newState);
 
 	// These are this way by convention.
 	// Override in a derived class if required

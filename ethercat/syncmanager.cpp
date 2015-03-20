@@ -201,6 +201,36 @@ void SyncManager::PDIInterrupt(bool intr)
 	this->control_pdi_intr = intr;
 }
 
+void SyncManager::ECATLatch(bool latch)
+{
+	if(enabled)
+		throw SlaveException("Tried to change ECATLatch when SyncManager enabled");
+
+	uint8_t control = slave->ReadByte(SYNCMANAGER_ADDR(SLAVE_SYNCMANAGER_ACTIVATE, syncManagerIndex));
+	control &= ~SLAVE_SYNCMANAGER_ACTIVATE_ECAT_LATCH_MASK;
+
+	if(latch)
+		control |= SLAVE_SYNCMANAGER_ACTIVATE_ECAT_LATCH_MASK;
+
+	slave->WriteByte(SYNCMANAGER_ADDR(SLAVE_SYNCMANAGER_ACTIVATE, syncManagerIndex), control);
+	this->ecat_latch_event = latch;
+}
+
+void SyncManager::PDILatch(bool latch)
+{
+	if(enabled)
+		throw SlaveException("Tried to change PDI:atch when SyncManager enabled");
+
+	uint8_t control = slave->ReadByte(SYNCMANAGER_ADDR(SLAVE_SYNCMANAGER_ACTIVATE, syncManagerIndex));
+	control &= ~SLAVE_SYNCMANAGER_ACTIVATE_PDI_LATCH_MASK;
+
+	if(latch)
+		control |= SLAVE_SYNCMANAGER_ACTIVATE_PDI_LATCH_MASK;
+
+	slave->WriteByte(SYNCMANAGER_ADDR(SLAVE_SYNCMANAGER_ACTIVATE, syncManagerIndex), control);
+	this->pdi_latch_event = latch;
+}
+
 bool SyncManager::MailboxFull()
 {
 	if(control_opmode != OpMode::Mailbox)
@@ -234,7 +264,7 @@ void SyncManager::WriteMailbox(MailboxType type, uint8_t* payload, int length)
 
 	// Set the header
 	uint16_t len_16bit = length;
-	uint16_t destAddr = slave->SlaveAddress(); // TODO: Is this correct?
+	uint16_t destAddr = 0; //slave->SlaveAddress(); // TODO: Is this correct?
 
 	telegram[0] = payload_length & 0xFF;
 	telegram[1] = (payload_length >> 8) & 0xFF;
@@ -350,4 +380,30 @@ int SyncManager::ReadMailbox(MailboxType* type, uint8_t* payload, int max_length
 	}
 
 	return numBytes;
+}
+
+void SyncManager::WriteBuffered(uint8_t* payload, int payload_length)
+{
+	if(control_opmode != OpMode::Buffered)
+		throw SlaveException("Cannot write to a buffer on a non-buffer SyncManager");
+	if(control_direction != Direction::Write)
+		throw SlaveException("Tried to write to a non-output SyncManager");
+	if(payload_length != length)
+		throw SlaveException("WriteBuffered is not writing the correct amount of information!");
+
+	// Don't even need to tag this, just fire it in!
+	slave->WriteData(this->startAddr, payload, payload_length);
+}
+
+void SyncManager::ReadBuffered(uint8_t* payload, int payload_length)
+{
+	if(control_opmode != OpMode::Buffered)
+		throw SlaveException("Cannot write to a buffer on a non-buffer SyncManager");
+	if(control_direction != Direction::Read)
+		throw SlaveException("Tried to read from a non-input SyncManager");
+	if(payload_length != length)
+		throw SlaveException("WriteBuffered is not writing the correct amount of information!");
+
+	// Don't even need to tag this, just fire it in!
+	slave->ReadData(this->startAddr, payload, payload_length);
 }

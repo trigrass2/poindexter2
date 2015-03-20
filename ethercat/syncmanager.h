@@ -56,11 +56,17 @@ public:
 	void ECATInterrupt(bool intr);
 	void PDIInterrupt(bool intr);
 
+	void ECATLatch(bool latch);
+	void PDILatch(bool latch);
+
 	void Enable();
 	void Disable();
 
 	void WriteMailbox(MailboxType type, uint8_t* payload, int length);
 	int ReadMailbox(MailboxType* type, uint8_t* payload, int max_length);
+
+	void WriteBuffered(uint8_t* payload, int length);
+	void ReadBuffered(uint8_t* payload, int max_length);
 
 private:
 	SlavePointer slave;
