@@ -184,13 +184,15 @@ void Master::Setup()
 
 void Master::Teardown()
 {
-	runVelocityControlThread = false;
-	controlThread.join();
-
 	for(int i = 0; i < FLEXPICKER_SLAVES; i++)
 	{
+		controlMux.lock();
 		slaves[i]->ChangeState(EtherCAT::Slave::State::INIT);
+		controlMux.unlock();
 	}
+
+	runVelocityControlThread = false;
+	controlThread.join();
 }
 
 void Master::velocityControlThread()

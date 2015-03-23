@@ -103,6 +103,12 @@ int main()
 	onT.wait();
 
 	for(int i = 0; i < 3; i++)
+		velocity[i]->Velocity(1000);
+
+	boost::asio::deadline_timer onT2(io, boost::posix_time::seconds(10));
+	onT2.wait();
+
+	for(int i = 0; i < 3; i++)
 	{
 		velocity[i]->SwitchOff();
 	}
