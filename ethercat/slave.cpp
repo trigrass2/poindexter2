@@ -195,6 +195,14 @@ void Slave::ChangeStateASync(State newState)
 	WriteShort(SLAVE_AL_CONTROL, alControl);
 }
 
+void Slave::ClearErrors()
+{
+	// Read the current AL control reg
+	uint16_t alControl = ReadShort(SLAVE_AL_CONTROL);
+	alControl |= SLAVE_AL_ERROR_IND;
+	WriteShort(SLAVE_AL_CONTROL, alControl);
+}
+
 void Slave::awaitALChange()
 {
 	uint16_t alState = 0;

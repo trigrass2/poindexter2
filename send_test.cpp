@@ -1,6 +1,10 @@
 #include <link.h>
 #include <slave.h>
 #include <canopen.h>
+
+#include <flexpicker_master.h>
+#include <flexpicker_velocitycontroller.h>
+
 #include <iostream>
 #include <iomanip>
 
@@ -39,7 +43,74 @@ int main()
 
 	EtherCAT::Link::Pointer link(new EtherCAT::Link("enp4s0", macAddr));
 	
-	int nSlaves = EtherCAT::Slave::NumSlaves(link);
+	Flexpicker::Master master(link);
+	master.Setup();
+
+	// Get the velocity controllers
+	Flexpicker::VelocityController::Pointer velocity[3];
+	for(int i = 0; i < 3; i++)
+		velocity[i] = master.Controller(i);
+
+	// Wait for them all to become available
+	bool await_switchon = true;
+	boost::asio::io_service io;
+	while(await_switchon)
+	{
+		await_switchon = false;
+
+		for(int i = 0; i < 3; i++)
+		{
+			std::cout << "Velocity " << i << " status: " << std::hex << velocity[i]->Status() << std::dec << std::endl;
+
+			if((velocity[i]->Status() & 0x1) == 0)
+				await_switchon = true;
+		}
+
+		boost::asio::deadline_timer t(io, boost::posix_time::seconds(1));
+		t.wait();
+	}
+
+	for(int i = 0; i < 3; i++)
+	{
+		velocity[i]->SwitchOn();
+	}
+
+	bool await_enable = true;
+	while(await_enable)
+	{
+		await_enable = false;
+
+		for(int i = 0; i < 3; i++)
+		{
+			std::cout << "Velocity " << i << " status: " << std::hex << velocity[i]->Status() << std::dec << std::endl;
+
+			if((velocity[i]->Status() & 0x2) == 0)
+				await_switchon = true;
+		}
+
+		boost::asio::deadline_timer t(io, boost::posix_time::seconds(1));
+		t.wait();
+	}
+
+	// Switch on!
+	for(int i = 0; i < 3; i++)
+	{
+		velocity[i]->EnableOperation();
+	}
+
+	// Wait 10 seconds
+	boost::asio::deadline_timer onT(io, boost::posix_time::seconds(10));
+	onT.wait();
+
+	for(int i = 0; i < 3; i++)
+	{
+		velocity[i]->SwitchOff();
+	}
+
+	master.Teardown();
+	return 0;
+
+	/*int nSlaves = EtherCAT::Slave::NumSlaves(link);
 	std::cout << "Found " << nSlaves << " slaves" << std::endl;
 
 	// We're only going to play with the first slave for now.
@@ -72,9 +143,6 @@ int main()
 	inMBox->TransferDirection(EtherCAT::SyncManager::Direction::Read);
 	inMBox->PDIInterrupt(true);
 	inMBox->Enable();
-
-	slave->ChangeState(EtherCAT::Slave::State::PREOP);
-
 
 	// Create the CANopen wrapper and test
 	EtherCAT::CANopen::Pointer can(new EtherCAT::CANopen(outMBox, inMBox));
@@ -311,5 +379,5 @@ int main()
 		std::cout << "Status: " << std::hex << statusWord << std::dec << std::endl;
 	}
 
-	return 0;
+	return 0;*/
 }

@@ -65,6 +65,7 @@ public:
 
 	void ChangeState(State newState);
 	void ChangeStateASync(State newState);
+	void ClearErrors();
 
 	// These are this way by convention.
 	// Override in a derived class if required
