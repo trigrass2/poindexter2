@@ -1,4 +1,5 @@
 #include "canopen.h"
+#include "canopen_sdo.h"
 
 using namespace EtherCAT;
 
@@ -152,5 +153,17 @@ uint32_t CANopen::ReadSDO(uint16_t index, uint8_t subindex)
 	response |= (packet[9] << 24);
 
 	return response;
+}
+
+void CANopen::SetInputPDO(uint16_t inputPDO)
+{
+	this->WriteSDO(SDO_I_COE_PDO_MAPPING_3, SDO_SI_COE_PDO_MAPPING(0), inputPDO, 2);
+	this->WriteSDO(SDO_I_COE_PDO_MAPPING_3, SDO_SI_COE_PDO_MAPPING_COUNT, 1, 2);
+}
+
+void CANopen::SetOutputPDO(uint16_t outputPDO)
+{
+	this->WriteSDO(SDO_I_COE_PDO_MAPPING_2, SDO_SI_COE_PDO_MAPPING(0), outputPDO, 2);
+	this->WriteSDO(SDO_I_COE_PDO_MAPPING_2, SDO_SI_COE_PDO_MAPPING_COUNT, 1, 2);
 }
 

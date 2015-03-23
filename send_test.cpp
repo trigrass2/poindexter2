@@ -265,6 +265,7 @@ int main()
 		position |= (data[2] << 16);
 		position |= (data[3] << 24);
 
+		statusWord = 0;
 		statusWord |= data[4];
 		statusWord |= (data[5] << 8);
 

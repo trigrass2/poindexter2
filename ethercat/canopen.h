@@ -56,6 +56,11 @@ public:
 	void WriteSDO(uint16_t index, uint8_t subindex, uint32_t data, int data_size);
 	uint32_t ReadSDO(uint16_t index, uint8_t subindex);
 
+	// These assume they're operating on SyncManager 2 and 3 in buffered mode.
+	// Override these from another class to change this for another drive.
+	virtual void SetInputPDO(uint16_t inputPDO);
+	virtual void SetOutputPDO(uint16_t outputPDO);
+
 private:
 	SyncManager::Pointer outMBox;
 	SyncManager::Pointer inMBox;
