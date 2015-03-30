@@ -96,7 +96,7 @@ Slave::~Slave()
 
 }
 
-void Slave::ChangeState(State newState)
+void Slave::ChangeState(State newState, bool clearErrors)
 {
 	if(newState == state)
 		return;
@@ -136,6 +136,10 @@ void Slave::ChangeState(State newState)
 	uint16_t alControl = ReadShort(SLAVE_AL_CONTROL);
 	alControl &= ~SLAVE_AL_STATE_MASK;
 	alControl |= (newStateBits & SLAVE_AL_STATE_MASK);
+
+	if(clearErrors)
+		alControl |= SLAVE_AL_ERROR_IND;
+
 	WriteShort(SLAVE_AL_CONTROL, alControl);
 
 	awaitALChange();

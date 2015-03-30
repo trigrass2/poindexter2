@@ -120,9 +120,11 @@ int main()
 	}
 
 	for(int j = 0; j < FLEXPICKER_SLAVES; j++)
-		velocity[j]->Velocity(10000);
+		velocity[j]->PositionSetpoint(0);
+		//velocity[j]->Velocity(10000);
+		//velocity[j]->Velocity(10000);
 
-	for(int i = 0; i < 20; i++)
+	for(int i = 0; i < 10; i++)
 	{
 		for(int j = 0; j < FLEXPICKER_SLAVES; j++)
 		{

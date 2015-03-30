@@ -11,6 +11,7 @@
 #include <boost/thread.hpp>
 
 #define FLEXPICKER_SLAVES 1
+#define INTERPOLATION_PERIOD_MS 2
 
 namespace Flexpicker
 {

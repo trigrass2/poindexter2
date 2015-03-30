@@ -63,7 +63,7 @@ public:
 	void ReadData(uint16_t address, uint8_t* data, uint16_t length);
 	void WriteData(uint16_t address, uint8_t* data, uint16_t length);
 
-	void ChangeState(State newState);
+	void ChangeState(State newState, bool clearErrors=false);
 	void ChangeStateASync(State newState);
 	void ClearErrors();
 

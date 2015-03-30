@@ -11,7 +11,9 @@ VelocityController::VelocityController(uint32_t fmmuAddr) :
 	control(0x06),
 	status(0x0),
 	position(0),
-	velocity(0)
+	velocity(0),
+	done(true),
+	positionSetpoint(0)
 {
 
 }
@@ -61,7 +63,7 @@ EtherCAT::Datagram::Pointer VelocityController::GetDatagram()
 	uint8_t* payload = dgram->payload_ptr();
 
 	// Pack in the velocity and control word
-	uint32_t velocityUns = velocity;
+	int32_t velocityUns = velocity;
 	payload[0] = velocityUns & 0xFF;
 	payload[1] = (velocityUns >> 8) & 0xFF;
 	payload[2] = (velocityUns >> 16) & 0xFF;
@@ -77,16 +79,53 @@ void VelocityController::UpdateData(EtherCAT::Datagram::Pointer dgram)
 {
 	uint8_t* payload = dgram->payload_ptr();
 
-	uint32_t positionUns = 0;
+	int32_t positionUns = 0;
 	positionUns |= payload[0];
 	positionUns |= (payload[1] << 8);
 	positionUns |= (payload[2] << 16);
 	positionUns |= (payload[3] << 24);
 
-	position = positionUns;
+	double positionDouble = positionUns;
+	positionDouble *= POSITION_SCALER;
+	position = positionDouble;
 
 	uint16_t newStatus = 0;
 	newStatus |= payload[4];
 	newStatus |= (payload[5] << 8);
 	status = newStatus;
+
+	if(!done)
+		doInterpolation();
+}
+
+void VelocityController::doInterpolation()
+{
+	// Proportional interpolator
+	// Borrowed from the original sources
+	// TODO: Fix acknowledgement	
+
+	if(position > positionSetpoint - 0.1 &&
+	   position < positionSetpoint + 0.1) 
+	{
+		done = true;
+		velocity = 0;
+		return;
+	}
+
+	double newVelocity = VELOCITY_KFB * (positionSetpoint - position) + VELOCITY_KFF * 0.0;
+
+	if(newVelocity > VELOCITY_LIMIT)
+		newVelocity = VELOCITY_LIMIT;
+	if(newVelocity < -VELOCITY_LIMIT)
+		newVelocity = -VELOCITY_LIMIT;
+
+	// Scale
+	newVelocity *= VELOCITY_SCALER;
+	velocity = newVelocity;
+}
+
+void VelocityController::PositionSetpoint(double positionSetpoint)
+{
+	done = false;
+	this->positionSetpoint = positionSetpoint;
 }

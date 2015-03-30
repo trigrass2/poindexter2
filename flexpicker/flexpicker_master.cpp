@@ -41,8 +41,8 @@ void Master::Setup()
 	// Add static ChangeStateBroadcast/ClearErrorBroadcast to EtherCAT later?
 	for(int i = 0; i < FLEXPICKER_SLAVES; i++)
 	{
-		slaves[i]->ClearErrors();
-		slaves[i]->ChangeState(EtherCAT::Slave::State::INIT);
+		//slaves[i]->ClearErrors();
+		slaves[i]->ChangeState(EtherCAT::Slave::State::INIT, true);
 	}
 
 	// Start setting them up
@@ -118,7 +118,7 @@ void Master::Setup()
 		std::cout << "Target position: " << can->ReadSDO(0x607A, 0) << std::endl;
 
 		// And the interpolation units
-		can->WriteSDO(SDO_I_INTERPOLATION_PERIOD, SDO_SI_INTERPOLATION_PERIOD_UNIT, 10, 1);
+		can->WriteSDO(SDO_I_INTERPOLATION_PERIOD, SDO_SI_INTERPOLATION_PERIOD_UNIT, INTERPOLATION_PERIOD_MS, 1);
 		can->WriteSDO(SDO_I_INTERPOLATION_PERIOD, SDO_SI_INTERPOLATION_PERIOD_INDEX, -3, 1);
 		
 		// Set up the other sync managers
@@ -209,7 +209,7 @@ void Master::Teardown()
 	for(int i = 0; i < FLEXPICKER_SLAVES; i++)
 	{
 		controlMux.lock();
-		slaves[i]->ChangeState(EtherCAT::Slave::State::INIT);
+		slaves[i]->ChangeState(EtherCAT::Slave::State::INIT, true);
 		controlMux.unlock();
 	}
 
@@ -220,12 +220,12 @@ void Master::Teardown()
 void Master::velocityControlThread()
 {
 	boost::asio::io_service io;
-	boost::asio::deadline_timer t(io, boost::posix_time::milliseconds(10));
+	boost::asio::deadline_timer t(io, boost::posix_time::milliseconds(INTERPOLATION_PERIOD_MS));
 
 	while(runVelocityControlThread)
 	{
 		t.wait();
-		t.expires_at(t.expires_at() + boost::posix_time::milliseconds(10));
+		t.expires_at(t.expires_at() + boost::posix_time::milliseconds(INTERPOLATION_PERIOD_MS));
 
 		EtherCAT::Packet pkt;
 		EtherCAT::Datagram::Pointer dgram[FLEXPICKER_SLAVES];

@@ -5,6 +5,14 @@
 #include <boost/cstdint.hpp>
 #include <datagram.h>
 
+#define VELOCITY_KFB 25.0
+#define VELOCITY_KFF 1.0
+//#define VELOCITY_LIMIT 314.0
+#define VELOCITY_LIMIT 300.0
+#define VELOCITY_SCALER 1335.65
+#define POSITION_SCALER (3.1415725 * 2.0 / (1048576.0))
+#define MOTOR_RADS_TO_ARM -32.0
+
 namespace Flexpicker
 {
 
@@ -29,20 +37,27 @@ public:
 	void DisableOperation();
 	void SwitchOff();
 
-	uint32_t Velocity() { return velocity; }
-	uint32_t Position() { return position; }
+	int32_t Velocity() { return velocity; }
+	double Position() { return position; }
 	uint16_t Status()   { return status; }
 	uint16_t Control()  { return control; }
 
 	void Velocity(int32_t newVelocity);
+	void PositionSetpoint(double positionSetpoint);
 
 private:
+	void doInterpolation();
+
 	uint32_t fmmuAddr;
 
 	int32_t velocity;
-	uint32_t position;
+	double position;
 	uint16_t status;
 	uint16_t control;
+
+	double positionSetpoint;
+
+	bool done;
 };
 
 }
