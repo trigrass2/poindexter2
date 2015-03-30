@@ -5,11 +5,12 @@
 #include <slave.h>
 #include <canopen.h>
 #include "flexpicker_velocitycontroller.h"
+#include "flexpicker_positioncontroller.h"
 
 #include <memory>
 #include <boost/thread.hpp>
 
-#define FLEXPICKER_SLAVES 3
+#define FLEXPICKER_SLAVES 1
 
 namespace Flexpicker
 {
@@ -31,6 +32,7 @@ public:
 	void Teardown(); // Stop emitting outputs and fall back to INIT
 
 	VelocityController::Pointer Controller(int index) { return vel[index]; }
+	//PositionController::Pointer Controller(int index) { return pos[index]; }
 
 private:
 	EtherCAT::Link::Pointer link;
@@ -38,6 +40,7 @@ private:
 	EtherCAT::CANopen::Pointer slaveCan[FLEXPICKER_SLAVES];
 
 	VelocityController::Pointer vel[FLEXPICKER_SLAVES];
+	//PositionController::Pointer pos[FLEXPICKER_SLAVES];
 
 	boost::thread controlThread;
 	boost::mutex  controlMux;

@@ -1,6 +1,6 @@
 CXX=g++
 LD=g++
-OBJS=flexpicker_master.o flexpicker_velocitycontroller.o
+OBJS=flexpicker_master.o flexpicker_velocitycontroller.o flexpicker_positioncontroller.o
 
 CXXFLAGS=-I../ethercat -std=c++11 -fPIC
 LDFLAGS=-fPIC -shared -L../ethercat -lethercat -lboost_system -lboost_thread -std=c++11

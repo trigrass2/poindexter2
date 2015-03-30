@@ -32,6 +32,7 @@ public:
 	uint32_t Velocity() { return velocity; }
 	uint32_t Position() { return position; }
 	uint16_t Status()   { return status; }
+	uint16_t Control()  { return control; }
 
 	void Velocity(int32_t newVelocity);
 

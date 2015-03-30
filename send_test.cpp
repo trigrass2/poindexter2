@@ -4,6 +4,7 @@
 
 #include <flexpicker_master.h>
 #include <flexpicker_velocitycontroller.h>
+#include <flexpicker_positioncontroller.h>
 
 #include <iostream>
 #include <iomanip>
@@ -47,9 +48,14 @@ int main()
 	master.Setup();
 
 	// Get the velocity controllers
-	Flexpicker::VelocityController::Pointer velocity[3];
-	for(int i = 0; i < 3; i++)
+	Flexpicker::VelocityController::Pointer velocity[FLEXPICKER_SLAVES];
+	for(int i = 0; i < FLEXPICKER_SLAVES; i++)
 		velocity[i] = master.Controller(i);
+
+
+	// By this point, the thread should have already run
+	// Attempt to set a position setpoint
+	// At the moment, this isn't done by the slave. Manually set this...
 
 	// Wait for them all to become available
 	bool await_switchon = true;
@@ -58,9 +64,9 @@ int main()
 	{
 		await_switchon = false;
 
-		for(int i = 0; i < 3; i++)
+		for(int i = 0; i < FLEXPICKER_SLAVES; i++)
 		{
-			std::cout << "Velocity " << i << " status: " << std::hex << velocity[i]->Status() << std::dec << std::endl;
+			std::cout << "Position " << i << " control: " << std::hex << velocity[i]->Control() << " status: " << std::hex << velocity[i]->Status() << std::dec << " velocity: " << velocity[i]->Velocity() << " position: " << velocity[i]->Position() << std::endl;
 
 			if((velocity[i]->Status() & 0x1) == 0)
 				await_switchon = true;
@@ -70,19 +76,21 @@ int main()
 		t.wait();
 	}
 
-	for(int i = 0; i < 3; i++)
+	for(int i = 0; i < FLEXPICKER_SLAVES; i++)
 	{
 		velocity[i]->SwitchOn();
 	}
+
+	std::cout << "SWITCHED ON" << std::endl;
 
 	bool await_enable = true;
 	while(await_enable)
 	{
 		await_enable = false;
 
-		for(int i = 0; i < 3; i++)
+		for(int i = 0; i < FLEXPICKER_SLAVES; i++)
 		{
-			std::cout << "Velocity " << i << " status: " << std::hex << velocity[i]->Status() << std::dec << std::endl;
+			std::cout << "Position " << i << " control: " << std::hex << velocity[i]->Control() << " status: " << std::hex << velocity[i]->Status() << std::dec << " velocity: " << velocity[i]->Velocity() << " position: " << velocity[i]->Position() << std::endl;
 
 			if((velocity[i]->Status() & 0x2) == 0)
 				await_switchon = true;
@@ -93,22 +101,39 @@ int main()
 	}
 
 	// Switch on!
-	for(int i = 0; i < 3; i++)
+	for(int i = 0; i < FLEXPICKER_SLAVES; i++)
 	{
 		velocity[i]->EnableOperation();
 	}
 
-	// Wait 10 seconds
-	boost::asio::deadline_timer onT(io, boost::posix_time::seconds(10));
-	onT.wait();
+	std::cout << "ENABLED" << std::endl;
 
-	for(int i = 0; i < 3; i++)
-		velocity[i]->Velocity(1000);
+	for(int i = 0; i < 5; i++)
+	{
+		for(int i = 0; i < FLEXPICKER_SLAVES; i++)
+		{
+			std::cout << "Position " << i << " control: " << std::hex << velocity[i]->Control() << " status: " << std::hex << velocity[i]->Status() << std::dec << " velocity: " << velocity[i]->Velocity() << " position: " << velocity[i]->Position() << std::endl;
+		}
 
-	boost::asio::deadline_timer onT2(io, boost::posix_time::seconds(10));
-	onT2.wait();
+		boost::asio::deadline_timer t(io, boost::posix_time::seconds(1));
+		t.wait();
+	}
 
-	for(int i = 0; i < 3; i++)
+	for(int j = 0; j < FLEXPICKER_SLAVES; j++)
+		velocity[j]->Velocity(10000);
+
+	for(int i = 0; i < 20; i++)
+	{
+		for(int j = 0; j < FLEXPICKER_SLAVES; j++)
+		{
+			std::cout << "Position " << j << " control: " << std::hex << velocity[j]->Control() << " status: " << std::hex << velocity[j]->Status() << std::dec << " velocity: " << velocity[j]->Velocity() << " position: " << velocity[j]->Position() << std::endl;
+		}
+
+		boost::asio::deadline_timer t(io, boost::posix_time::seconds(1));
+		t.wait();
+	}
+
+	for(int i = 0; i < FLEXPICKER_SLAVES; i++)
 	{
 		velocity[i]->SwitchOff();
 	}

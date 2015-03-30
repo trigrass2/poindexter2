@@ -15,8 +15,8 @@ Master::Master(EtherCAT::Link::Pointer link) : link(link)
 {
 	// Probe for the number of slaves...
 	int numSlaves = EtherCAT::Slave::NumSlaves(link);
-	if(numSlaves != FLEXPICKER_SLAVES)
-		throw FlexPickerException("Number of discovered slaves does not match expected number of slaves");
+	if(numSlaves < FLEXPICKER_SLAVES)
+	  throw FlexPickerException("There are less slaves than expected...");
 
 	// Init the slaves
 	for(int i = 0; i < FLEXPICKER_SLAVES; i++)
@@ -93,10 +93,30 @@ void Master::Setup()
 
 		can->SetOutputPDO(0x1702);
 		can->SetInputPDO(0x1b01);
+		//can->SetOutputPDO(0x1701);
+		//can->SetInputPDO(0x1b01);
+
 
 		// Set up the operation mode
 		can->WriteSDO(SDO_I_OPERATION_MODE, 0, SDO_OPERATION_MODE_DIGITAL_SPEED, 1);
-		
+		//can->WriteSDO(SDO_I_OPERATION_MODE, 0, 1, 1);
+
+		std::cout << "Velocity: " << can->ReadSDO(0x6081, 0) << std::endl;
+		std::cout << "Motion type: " << std::hex << can->ReadSDO(0x2022, 3) << std::dec << std::endl;
+
+		// Read out the MSSR
+		std::cout << "MSSR: 0x" << std::hex << can->ReadSDO(0x1002, 0) << std::dec << std::endl;
+
+		// Sanity...
+		std::cout << "OpMode: 0x" << std::hex << can->ReadSDO(0x6061, 0) << std::dec << std::endl;
+
+		// Ramp...
+		std::cout << "Motion ramp: " << can->ReadSDO(0x6086, 0) << std::endl;
+
+		std::cout << "Range limits: " << (int)can->ReadSDO(0x607b, 1) << " - " << (int)can->ReadSDO(0x607b, 2) << std::endl;
+		std::cout << "Homing mode: " << can->ReadSDO(0x2024, 1) << std::endl;
+		std::cout << "Target position: " << can->ReadSDO(0x607A, 0) << std::endl;
+
 		// And the interpolation units
 		can->WriteSDO(SDO_I_INTERPOLATION_PERIOD, SDO_SI_INTERPOLATION_PERIOD_UNIT, 10, 1);
 		can->WriteSDO(SDO_I_INTERPOLATION_PERIOD, SDO_SI_INTERPOLATION_PERIOD_INDEX, -3, 1);
@@ -162,6 +182,8 @@ void Master::Setup()
 
 		VelocityController::Pointer vc(new VelocityController(logicalAddr));
 		vel[i] = vc;
+		//PositionController::Pointer pc(new PositionController(logicalAddr));
+		//pos[i] = pc;
 	}
 
 	runVelocityControlThread = true;
@@ -200,11 +222,8 @@ void Master::velocityControlThread()
 	boost::asio::io_service io;
 	boost::asio::deadline_timer t(io, boost::posix_time::milliseconds(10));
 
-	while(1)
+	while(runVelocityControlThread)
 	{
-		if(!runVelocityControlThread)
-			return;
-
 		t.wait();
 		t.expires_at(t.expires_at() + boost::posix_time::milliseconds(10));
 
@@ -214,6 +233,7 @@ void Master::velocityControlThread()
 		for(int i = 0; i < FLEXPICKER_SLAVES; i++)
 		{
 			dgram[i] = vel[i]->GetDatagram();
+			//dgram[i] = pos[i]->GetDatagram();
 			pkt.AddDatagram(dgram[i]);
 		}
 
@@ -223,5 +243,7 @@ void Master::velocityControlThread()
 
 		for(int i = 0; i < FLEXPICKER_SLAVES; i++)
 			vel[i]->UpdateData(dgram[i]);
+		//pos[i]->UpdateData(dgram[i]);
+		
 	}
 }
