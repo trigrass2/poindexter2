@@ -10,8 +10,8 @@
 //#define VELOCITY_LIMIT 314.0
 #define VELOCITY_LIMIT 300.0
 #define VELOCITY_SCALER 1335.65
-#define POSITION_SCALER (3.1415725 * 2.0 / (1048576.0))
-#define MOTOR_RADS_TO_ARM -32.0
+#define POSITION_SCALER (3.1415725 * 2.0 / (1048576.0)) // Motor increments to motor rads
+#define MOTOR_RADS_TO_ARM -32.0 // Motor rads to arm rads (via gearbox...)
 
 namespace Flexpicker
 {
@@ -38,12 +38,16 @@ public:
 	void SwitchOff();
 
 	int32_t Velocity() { return velocity; }
+	int16_t Torque()   { return torque; }
+
 	double Position() { return position; }
+	double Home()     { return homePosition; }
 	uint16_t Status()   { return status; }
 	uint16_t Control()  { return control; }
 
 	void Velocity(int32_t newVelocity);
-	void PositionSetpoint(double positionSetpoint);
+	void PositionSetpoint(double positionSetpoint, double maxVelocity=VELOCITY_LIMIT);
+	void SetHome(); // Set the current position as "home"
 
 private:
 	void doInterpolation();
@@ -51,11 +55,15 @@ private:
 	uint32_t fmmuAddr;
 
 	int32_t velocity;
+	int16_t torque;
 	double position;
+	double velocityLimit;
 	uint16_t status;
 	uint16_t control;
 
 	double positionSetpoint;
+
+	double homePosition;
 
 	bool done;
 };

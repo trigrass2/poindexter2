@@ -1,5 +1,6 @@
 #include "flexpicker_master.h"
 #include "ax2000_params.h"
+#include "flexpicker_kinematics.h"
 
 #include <canopen_sdo.h>
 #include <packet.h>
@@ -91,11 +92,9 @@ void Master::Setup()
 		EtherCAT::CANopen::Pointer can(new EtherCAT::CANopen(slaves[i]->SyncManagerOutMBox(), slaves[i]->SyncManagerInMBox()));
 		slaveCan[i] = can;
 
-		can->SetOutputPDO(0x1702);
-		can->SetInputPDO(0x1b01);
-		//can->SetOutputPDO(0x1701);
-		//can->SetInputPDO(0x1b01);
-
+		// Defined in Beckhoff AX2xxx.xml
+		can->SetOutputPDO(0x1702); // Velocity demand, control word
+		can->SetInputPDO(0x1b03);  // Position actual, torque actual, status word
 
 		// Set up the operation mode
 		can->WriteSDO(SDO_I_OPERATION_MODE, 0, SDO_OPERATION_MODE_DIGITAL_SPEED, 1);
@@ -199,7 +198,7 @@ void Master::Setup()
 		boost::asio::deadline_timer t(io, boost::posix_time::seconds(2));
 		t.wait();
 		controlMux.lock();
-		slaves[i]->ChangeState(EtherCAT::Slave::State::OP);
+		slaves[i]->ChangeStateASync(EtherCAT::Slave::State::OP);
 		controlMux.unlock();
 	}
 }
@@ -215,6 +214,72 @@ void Master::Teardown()
 
 	runVelocityControlThread = false;
 	controlThread.join();
+}
+
+void Master::DoHoming()
+{
+	boost::asio::io_service io;
+
+	// Set the homing velocity
+	for(int i = 0; i < FLEXPICKER_SLAVES; i++)
+	{
+		vel[i]->Velocity(HOMING_VELOCITY);
+	}
+
+	// Now keep monitoring the torque until they've all done
+	int homeDoneNum = 0;
+	bool homeDone[FLEXPICKER_SLAVES] = {false};
+
+	while(homeDoneNum != FLEXPICKER_SLAVES)
+	{
+		for(int i = 0; i < FLEXPICKER_SLAVES; i++)
+		{
+			//std::cout << "T" << i << " " << vel[i]->Torque() << " ";
+			if(vel[i]->Torque() > HOMING_TORQUE_HOME && !homeDone[i])
+			{
+				vel[i]->Velocity(0);
+				homeDoneNum++;
+				homeDone[i] = true;
+			}
+		}
+
+		boost::asio::deadline_timer foo(io, boost::posix_time::milliseconds(1));
+		foo.wait();
+		//std::cout << std::endl;
+	}
+
+	// Now move down again for a time period.
+	for(int i = 0; i < FLEXPICKER_SLAVES; i++)
+		vel[i]->Velocity(-HOMING_VELOCITY * 10);
+	boost::asio::deadline_timer t(io, boost::posix_time::seconds(1));
+	t.wait();
+	for(int i = 0; i < FLEXPICKER_SLAVES; i++)
+		vel[i]->Velocity(0);
+
+	boost::asio::deadline_timer t2(io, boost::posix_time::seconds(1));
+	for(int i = 0; i < FLEXPICKER_SLAVES; i++)
+		vel[i]->SetHome();
+}
+
+void Master::MoveTo(double x, double y, double z)
+{
+	// Run the kinematics!
+	double theta[3];
+	double xyz[3] = { x, y, z };
+
+	for(int i = 0; i < 3; i++)
+		xyz[i] *= 1000; // Kinematics is in mm, we're in m
+
+	inversekin(xyz, theta);
+
+	// Multiply by -32
+	for(int i = 0; i < 3; i++)
+		theta[i] *= -32;
+
+	for(int i = 0; i < 3; i++)
+		vel[i]->PositionSetpoint(theta[i], 10);
+
+	std::cout << "Radians: x " << theta[0] << " y " << theta[1] << " z " << theta[2] << std::endl;
 }
 
 void Master::velocityControlThread()

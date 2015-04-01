@@ -12,6 +12,7 @@ VelocityController::VelocityController(uint32_t fmmuAddr) :
 	status(0x0),
 	position(0),
 	velocity(0),
+	velocityLimit(VELOCITY_LIMIT),
 	done(true),
 	positionSetpoint(0)
 {
@@ -55,11 +56,13 @@ void VelocityController::Velocity(int32_t newVelocity)
 {
 	// TODO: Put a static check here to stop it going insane...
 	velocity = newVelocity;
+
+	done = true; // Stop interpolation taking place...
 }
 
 EtherCAT::Datagram::Pointer VelocityController::GetDatagram()
 {
-	EtherCAT::Datagram::Pointer dgram(new EtherCAT::DatagramLRW(AX2000_FMMU_OUT_LENGTH, fmmuAddr));
+	EtherCAT::Datagram::Pointer dgram(new EtherCAT::DatagramLRW(AX2000_FMMU_IN_LENGTH, fmmuAddr));
 	uint8_t* payload = dgram->payload_ptr();
 
 	// Pack in the velocity and control word
@@ -71,6 +74,8 @@ EtherCAT::Datagram::Pointer VelocityController::GetDatagram()
 
 	payload[4] = control & 0xFF;
 	payload[5] = (control >> 8) & 0xFF;
+	payload[6] = 0;
+	payload[7] = 0; // Sanity...
 
 	return dgram; 
 }
@@ -85,13 +90,18 @@ void VelocityController::UpdateData(EtherCAT::Datagram::Pointer dgram)
 	positionUns |= (payload[2] << 16);
 	positionUns |= (payload[3] << 24);
 
+	int16_t newTorque = 0;
+	newTorque |= (payload[4]);
+	newTorque |= (payload[5] << 8);
+	torque = newTorque;
+
 	double positionDouble = positionUns;
 	positionDouble *= POSITION_SCALER;
 	position = positionDouble;
 
 	uint16_t newStatus = 0;
-	newStatus |= payload[4];
-	newStatus |= (payload[5] << 8);
+	newStatus |= payload[6];
+	newStatus |= (payload[7] << 8);
 	status = newStatus;
 
 	if(!done)
@@ -114,18 +124,29 @@ void VelocityController::doInterpolation()
 
 	double newVelocity = VELOCITY_KFB * (positionSetpoint - position) + VELOCITY_KFF * 0.0;
 
-	if(newVelocity > VELOCITY_LIMIT)
-		newVelocity = VELOCITY_LIMIT;
-	if(newVelocity < -VELOCITY_LIMIT)
-		newVelocity = -VELOCITY_LIMIT;
+	if(newVelocity > velocityLimit)
+		newVelocity = velocityLimit;
+	if(newVelocity < -velocityLimit)
+		newVelocity = -velocityLimit;
 
 	// Scale
 	newVelocity *= VELOCITY_SCALER;
 	velocity = newVelocity;
 }
 
-void VelocityController::PositionSetpoint(double positionSetpoint)
+void VelocityController::PositionSetpoint(double positionSetpoint, double maxVelocity)
 {
+	if(maxVelocity > VELOCITY_LIMIT)
+		throw FlexPickerException("You can't move that fast!");
+
+	// Justify it by the home location.
+	this->positionSetpoint = positionSetpoint + homePosition;
+	this->velocityLimit = maxVelocity;
+
 	done = false;
-	this->positionSetpoint = positionSetpoint;
+}
+
+void VelocityController::SetHome()
+{
+	homePosition = position;
 }

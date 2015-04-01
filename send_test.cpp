@@ -17,26 +17,6 @@
 
 #define EEPROM_READ_SIZE 4096
 
-// Borrowed from Beckhoff AX2xxx.xml
-// I assume these can be set to anything, but these seem to be sensible defaults
-#define AX2000_MBOX_OUT_ADDR 0x1800
-#define AX2000_MBOX_OUT_SIZE 512
-#define AX2000_MBOX_IN_ADDR  0x1c00
-#define AX2000_MBOX_IN_SIZE  512
-
-#define AX2000_PDO_OUT_ADDR 0x1100
-#define AX2000_PDO_OUT_SIZE 6
-#define AX2000_PDO_IN_ADDR  0x1140
-#define AX2000_PDO_IN_SIZE  6
-
-#define AX2000_FMMU_OUT_PHYSADDR 0x1100
-#define AX2000_FMMU_OUT_LENGTH   8
-#define AX2000_FMMU_OUT_LOGICALADDR 0x10000
-
-#define AX2000_FMMU_IN_PHYSADDR 0x1140
-#define AX2000_FMMU_IN_LENGTH 8
-#define AX2000_FMMU_IN_LOGICALADDR 0x10000
-
 int main()
 {
 	std::cout << "Hello World!\n";
@@ -51,7 +31,6 @@ int main()
 	Flexpicker::VelocityController::Pointer velocity[FLEXPICKER_SLAVES];
 	for(int i = 0; i < FLEXPICKER_SLAVES; i++)
 		velocity[i] = master.Controller(i);
-
 
 	// By this point, the thread should have already run
 	// Attempt to set a position setpoint
@@ -119,10 +98,43 @@ int main()
 		t.wait();
 	}
 
-	for(int j = 0; j < FLEXPICKER_SLAVES; j++)
-		velocity[j]->PositionSetpoint(0);
-		//velocity[j]->Velocity(10000);
-		//velocity[j]->Velocity(10000);
+	master.DoHoming();
+
+	boost::asio::deadline_timer moveTimer(io, boost::posix_time::seconds(2));
+
+	while(1)
+	{
+		master.MoveTo(0, 0, -0.65);
+		moveTimer.expires_at(moveTimer.expires_at() + boost::posix_time::seconds(2));
+		moveTimer.wait();
+
+		master.MoveTo(-0.2, 0, -0.75);
+		moveTimer.expires_at(moveTimer.expires_at() + boost::posix_time::seconds(2));
+		moveTimer.wait();
+
+		master.MoveTo(0, 0, -0.75);
+		moveTimer.expires_at(moveTimer.expires_at() + boost::posix_time::seconds(2));
+		moveTimer.wait();
+		
+		master.MoveTo(0.2, 0, -0.75);
+		moveTimer.expires_at(moveTimer.expires_at() + boost::posix_time::seconds(2));
+		moveTimer.wait();
+	}
+
+	/*for(int j = 0; j < 20; j++)
+	{
+		for(int i = 0; i < FLEXPICKER_SLAVES; i++)
+			velocity[i]->PositionSetpoint(-45, 100);
+
+		boost::asio::deadline_timer t(io, boost::posix_time::seconds(2));
+		t.wait();
+
+		for(int i = 0; i < FLEXPICKER_SLAVES; i++)
+			velocity[i]->PositionSetpoint(0, 100);
+
+		boost::asio::deadline_timer t2(io, boost::posix_time::seconds(2));
+		t2.wait();
+	}*/
 
 	for(int i = 0; i < 10; i++)
 	{

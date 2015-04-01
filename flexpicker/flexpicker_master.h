@@ -10,8 +10,10 @@
 #include <memory>
 #include <boost/thread.hpp>
 
-#define FLEXPICKER_SLAVES 1
-#define INTERPOLATION_PERIOD_MS 2
+#define FLEXPICKER_SLAVES 3
+#define INTERPOLATION_PERIOD_MS 1
+#define HOMING_VELOCITY 1000
+#define HOMING_TORQUE_HOME 500
 
 namespace Flexpicker
 {
@@ -31,6 +33,9 @@ public:
 
 	void Setup(); // Set up the EtherCAT stuff and go to OP state.
 	void Teardown(); // Stop emitting outputs and fall back to INIT
+
+	void DoHoming();
+	void MoveTo(double x, double y, double z);
 
 	VelocityController::Pointer Controller(int index) { return vel[index]; }
 	//PositionController::Pointer Controller(int index) { return pos[index]; }
