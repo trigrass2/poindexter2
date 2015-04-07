@@ -3,7 +3,7 @@ LD=g++
 CXXFLAGS=-fPIC -std=c++11
 LDFLAGS=-shared -fPIC -std=c++11
 
-OBJS=link.o datagram.o packet.o slave.o syncmanager.o fmmu.o canopen.o
+OBJS=link.o datagram.o packet.o slave.o syncmanager.o fmmu.o canopen.o cyclic_communication_manager.o
 
 all: libethercat.so
 
