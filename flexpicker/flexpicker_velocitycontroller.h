@@ -4,6 +4,7 @@
 #include <memory>
 #include <boost/cstdint.hpp>
 #include <datagram.h>
+#include <cyclic_communication_manager.h>
 
 #define VELOCITY_KFB 25.0
 #define VELOCITY_KFF 1.0
@@ -16,7 +17,7 @@
 namespace Flexpicker
 {
 
-class VelocityController
+class VelocityController : public EtherCAT::CyclicController
 {
 public:
 	typedef std::shared_ptr<VelocityController> Pointer;
@@ -28,7 +29,7 @@ public:
 	// Notify it of new data to unpack
 	// TODO: Should it just hold the datagram and unpack from there?
 	// TODO: Can we do wait/notify on a datagram?
-	void UpdateData(EtherCAT::Datagram::Pointer dgram);
+	void UpdateData();
 
 	// Startup/shutdown
 	void SwitchOn();
@@ -66,6 +67,8 @@ private:
 	double homePosition;
 
 	bool done;
+
+	EtherCAT::Datagram::Pointer dgram;
 };
 
 }

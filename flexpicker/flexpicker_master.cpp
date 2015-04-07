@@ -4,6 +4,7 @@
 
 #include <canopen_sdo.h>
 #include <packet.h>
+#include <datagram_broadcast.h>
 
 #include <boost/cstdint.hpp>
 
@@ -12,7 +13,7 @@
 
 using namespace Flexpicker;
 
-Master::Master(EtherCAT::Link::Pointer link) : link(link)
+Master::Master(EtherCAT::Link::Pointer link) : link(link), manager(link, 1)
 {
 	// Probe for the number of slaves...
 	int numSlaves = EtherCAT::Slave::NumSlaves(link);
@@ -181,14 +182,13 @@ void Master::Setup()
 
 		VelocityController::Pointer vc(new VelocityController(logicalAddr));
 		vel[i] = vc;
-		//PositionController::Pointer pc(new PositionController(logicalAddr));
-		//pos[i] = pc;
+
+		manager.RegisterCyclicController(vc);
 	}
 
-	runVelocityControlThread = true;
+	manager.Run();
 
-	controlThread = boost::thread(boost::bind(&Master::velocityControlThread, this));
-
+	
 	boost::asio::io_service io;
 	boost::asio::deadline_timer t1(io, boost::posix_time::seconds(10));
 	t1.wait();
@@ -282,7 +282,7 @@ void Master::MoveTo(double x, double y, double z)
 	std::cout << "Radians: x " << theta[0] << " y " << theta[1] << " z " << theta[2] << std::endl;
 }
 
-void Master::velocityControlThread()
+/*void Master::velocityControlThread()
 {
 	boost::asio::io_service io;
 	boost::asio::deadline_timer t(io, boost::posix_time::milliseconds(INTERPOLATION_PERIOD_MS));
@@ -311,4 +311,4 @@ void Master::velocityControlThread()
 		//pos[i]->UpdateData(dgram[i]);
 		
 	}
-}
+}*/

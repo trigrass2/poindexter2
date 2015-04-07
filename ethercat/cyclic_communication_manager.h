@@ -23,15 +23,21 @@ class CyclicController
 {
 public:
 	typedef std::shared_ptr<CyclicController> Pointer;
-	virtual ~CyclicController() = 0;
+	virtual ~CyclicController() {}
 
-	// This function should return the datagram to be processed.
-	// The parameter is provided by the CyclicCommunicationManager, and
-	// is the future to wait on before the Datagram has valid results.
-	// The returned Datagram MUST NOT be modified before this future notifies.
-	// Having a void future doesn't feel like great design, but meh, it works.
-	// We can fix it properly later...this needs to be patched onto the existing code :D
-	virtual Datagram::Pointer GetDatagram(std::future<void> future) = 0;
+	// This function should return the datagram to be sent in the cyclic controller.
+	// This used to also accept a future. This does not accept a future any more.
+	// The rationale is that actually using futures for this is complex; normally, the
+	// CyclicController will wait on the future as soon as it is given. This will
+	// block the CyclicCommunicationManager. The other way is for each CyclicController
+	// to have its own thread. This complicates passing around the future and also, 
+	// it is difficult to give each thread real-time priority. Moreover, updates of
+	// a CyclicController will need to typically be synchronous on UpdateData anyway, and if
+	// it takes too long to execute in UpdateData, it would end up missing deadlines anyway!
+	// For this reason, the processing can be de-coupled if required, or just
+	// run in the same thread on "UpdateData" if required.
+	virtual Datagram::Pointer GetDatagram() = 0;
+	virtual void UpdateData() = 0;
 };
 
 class CyclicCommunicationManager
@@ -53,6 +59,9 @@ public:
 	void Stop();
 
 private:
+	CyclicFuture SendDatagramAcyclic(Datagram::Pointer dgram);
+	CyclicFuture SendDatagramCyclic(Datagram::Pointer dgram);
+
 	typedef std::promise<void> CyclicPromise;
 
 	Link::Pointer link;
@@ -66,7 +75,7 @@ private:
 	volatile int acyclicWriterPtr;
 
 	std::thread cyclicThreadRef;
-	bool runCyclicThread;
+	volatile bool runCyclicThread;
 	void cyclicThread();
 };
 

@@ -16,7 +16,8 @@ VelocityController::VelocityController(uint32_t fmmuAddr) :
 	done(true),
 	positionSetpoint(0)
 {
-
+	// Init the datagram pointer too
+	dgram = EtherCAT::Datagram::Pointer(new EtherCAT::DatagramLRW(AX2000_FMMU_IN_LENGTH, fmmuAddr));
 }
 
 void VelocityController::SwitchOn()
@@ -62,7 +63,6 @@ void VelocityController::Velocity(int32_t newVelocity)
 
 EtherCAT::Datagram::Pointer VelocityController::GetDatagram()
 {
-	EtherCAT::Datagram::Pointer dgram(new EtherCAT::DatagramLRW(AX2000_FMMU_IN_LENGTH, fmmuAddr));
 	uint8_t* payload = dgram->payload_ptr();
 
 	// Pack in the velocity and control word
@@ -80,7 +80,7 @@ EtherCAT::Datagram::Pointer VelocityController::GetDatagram()
 	return dgram; 
 }
 
-void VelocityController::UpdateData(EtherCAT::Datagram::Pointer dgram)
+void VelocityController::UpdateData()
 {
 	uint8_t* payload = dgram->payload_ptr();
 

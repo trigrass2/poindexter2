@@ -31,7 +31,30 @@ CyclicCommunicationManager::CyclicFuture CyclicCommunicationManager::SendDatagra
 {
 	// TODO: Add a check to this to assert there's actually space for it.
 	// I'm missing it for now to test that it actually works...
+	if(runCyclicThread)
+		return SendDatagramCyclic(dgram);
+	else
+		return SendDatagramAcyclic(dgram);
+}
 
+CyclicCommunicationManager::CyclicFuture CyclicCommunicationManager::SendDatagramAcyclic(Datagram::Pointer dgram)
+{
+	// We're not currently running
+	// Send it, then return an already fulfilled future.
+	CyclicPromise p = CyclicPromise();
+	CyclicFuture future = p.get_future();
+
+	EtherCAT::Packet pkt;
+	pkt.AddDatagram(dgram);
+	pkt.SendReceive(link);
+
+	p.set_value();
+
+	return future;
+}
+
+CyclicCommunicationManager::CyclicFuture CyclicCommunicationManager::SendDatagramCyclic(Datagram::Pointer dgram)
+{
 	CyclicPromise p = CyclicPromise();
 	CyclicFuture future = p.get_future();
 
@@ -85,10 +108,7 @@ void CyclicCommunicationManager::cyclicThread()
 			ctrl != cyclicControllers.end();
 			ctrl++)
 		{
-			CyclicPromise promise;
-			Datagram::Pointer dgram = (*ctrl)->GetDatagram(promise.get_future());
-
-			promises.push(std::move(promise));
+			Datagram::Pointer dgram = (*ctrl)->GetDatagram();
 			pkt.AddDatagram(dgram);
 		}
 
@@ -106,6 +126,14 @@ void CyclicCommunicationManager::cyclicThread()
 
 		// Send it!
 		pkt.SendReceive(link);
+
+		// Notify the cyclic controllers
+		for(std::vector<CyclicController::Pointer>::iterator ctrl = cyclicControllers.begin();
+			ctrl != cyclicControllers.end();
+			ctrl++)
+		{
+			(*ctrl)->UpdateData();
+		}
 
 		// Notify all of the promises
 		while(!promises.empty())

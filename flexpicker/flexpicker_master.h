@@ -4,6 +4,7 @@
 #include <link.h>
 #include <slave.h>
 #include <canopen.h>
+#include <cyclic_communication_manager.h>
 #include "flexpicker_velocitycontroller.h"
 #include "flexpicker_positioncontroller.h"
 
@@ -44,6 +45,7 @@ private:
 	EtherCAT::Link::Pointer link;
 	EtherCAT::Slave::Pointer slaves[FLEXPICKER_SLAVES];
 	EtherCAT::CANopen::Pointer slaveCan[FLEXPICKER_SLAVES];
+	EtherCAT::CyclicCommunicationManager manager;
 
 	VelocityController::Pointer vel[FLEXPICKER_SLAVES];
 	//PositionController::Pointer pos[FLEXPICKER_SLAVES];
