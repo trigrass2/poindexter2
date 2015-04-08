@@ -195,7 +195,7 @@ void Master::Setup()
 	boost::asio::deadline_timer t1(io, boost::posix_time::seconds(10));
 	t1.wait();
 
-	for(int i = 0; i < 1; i++)
+	for(int i = 0; i < FLEXPICKER_SLAVES; i++)
 	{
 		slaves[i]->ChangeState(EtherCAT::Slave::State::OP);
 	}
