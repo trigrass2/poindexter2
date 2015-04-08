@@ -24,12 +24,12 @@ public:
 	VelocityController(uint32_t fmmuAddr);
 
 	// Get a datagram to write out the current values
-	EtherCAT::Datagram::Pointer GetDatagram();
+	virtual EtherCAT::Datagram::Pointer GetDatagram();
 
 	// Notify it of new data to unpack
 	// TODO: Should it just hold the datagram and unpack from there?
 	// TODO: Can we do wait/notify on a datagram?
-	void UpdateData();
+	virtual void UpdateData();
 
 	// Startup/shutdown
 	void SwitchOn();

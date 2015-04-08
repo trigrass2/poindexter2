@@ -12,7 +12,7 @@
 #include <boost/thread.hpp>
 
 #define FLEXPICKER_SLAVES 3
-#define INTERPOLATION_PERIOD_MS 1
+#define INTERPOLATION_PERIOD_MS 10
 #define HOMING_VELOCITY 1000
 #define HOMING_TORQUE_HOME 500
 
@@ -45,7 +45,7 @@ private:
 	EtherCAT::Link::Pointer link;
 	EtherCAT::Slave::Pointer slaves[FLEXPICKER_SLAVES];
 	EtherCAT::CANopen::Pointer slaveCan[FLEXPICKER_SLAVES];
-	EtherCAT::CyclicCommunicationManager manager;
+	EtherCAT::CyclicCommunicationManager::Pointer manager;
 
 	VelocityController::Pointer vel[FLEXPICKER_SLAVES];
 	//PositionController::Pointer pos[FLEXPICKER_SLAVES];

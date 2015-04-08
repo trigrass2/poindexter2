@@ -63,6 +63,8 @@ void VelocityController::Velocity(int32_t newVelocity)
 
 EtherCAT::Datagram::Pointer VelocityController::GetDatagram()
 {
+	// Reset the datagram
+	dgram->ResetContainer();
 	uint8_t* payload = dgram->payload_ptr();
 
 	// Pack in the velocity and control word

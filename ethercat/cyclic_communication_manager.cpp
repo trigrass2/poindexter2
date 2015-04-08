@@ -3,6 +3,7 @@
 #include <functional>
 #include <chrono>
 #include <queue>
+#include <iostream>
 
 #include "packet.h"
 
@@ -148,4 +149,6 @@ void CyclicCommunicationManager::cyclicThread()
 		std::this_thread::sleep_until(clk);
 		clk += addAmount;
 	}
+
+	std::cout << "EXITING" << std::endl;
 }

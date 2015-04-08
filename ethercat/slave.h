@@ -4,6 +4,7 @@
 #include "link.h"
 #include "fmmu.h"
 #include "syncmanager.h"
+#include "cyclic_communication_manager.h"
 #include <boost/cstdint.hpp>
 #include <memory>
 
@@ -36,7 +37,7 @@ public:
 
 	typedef std::shared_ptr<Slave> Pointer;
 
-	Slave(Link::Pointer link, uint16_t index);
+	Slave(CyclicCommunicationManager::Pointer mgr, uint16_t index);
 	virtual ~Slave();
 
 	virtual void Init();
@@ -52,13 +53,13 @@ public:
 
 	// Access memory space.
 	// It is recommended to not use there where possible...
-	uint8_t ReadByte(uint16_t address)    { return readByteConfigured (link, slaveAddr, address); }
-	uint16_t ReadShort(uint16_t address)  { return readShortConfigured(link, slaveAddr, address); }
-	uint32_t ReadWord(uint16_t address)   { return readWordConfigured (link, slaveAddr, address); }
+	uint8_t ReadByte(uint16_t address)    { return readByteConfigured (manager, slaveAddr, address); }
+	uint16_t ReadShort(uint16_t address)  { return readShortConfigured(manager, slaveAddr, address); }
+	uint32_t ReadWord(uint16_t address)   { return readWordConfigured (manager, slaveAddr, address); }
 
-	void WriteByte(uint16_t address, uint8_t data)   { writeByteConfigured(link, slaveAddr, address, data); }
-	void WriteShort(uint16_t address, uint16_t data) { writeShortConfigured(link, slaveAddr, address, data); }
-	void WriteWord(uint16_t address, uint32_t data)  { writeWordConfigured(link, slaveAddr, address, data); }
+	void WriteByte(uint16_t address, uint8_t data)   { writeByteConfigured(manager, slaveAddr, address, data); }
+	void WriteShort(uint16_t address, uint16_t data) { writeShortConfigured(manager, slaveAddr, address, data); }
+	void WriteWord(uint16_t address, uint32_t data)  { writeWordConfigured(manager, slaveAddr, address, data); }
 
 	void ReadData(uint16_t address, uint8_t* data, uint16_t length);
 	void WriteData(uint16_t address, uint8_t* data, uint16_t length);
@@ -78,30 +79,31 @@ public:
 	virtual FMMU::Pointer FMMUIn()  { return FMMUs[1]; }
 
 	// Static helpers
-	static int NumSlaves(Link::Pointer link);
-	static uint8_t SlaveType(Link::Pointer link, uint16_t slaveIdx);
-	static uint8_t SlaveRev(Link::Pointer link, uint16_t slaveIdx);
-	static uint16_t SlaveBuild(Link::Pointer link, uint16_t slaveIdx);
+	static int NumSlaves(CyclicCommunicationManager::Pointer manager);
+	static uint8_t SlaveType(CyclicCommunicationManager::Pointer manager, uint16_t slaveIdx);
+	static uint8_t SlaveRev(CyclicCommunicationManager::Pointer manager, uint16_t slaveIdx);
+	static uint16_t SlaveBuild(CyclicCommunicationManager::Pointer manager, uint16_t slaveIdx);
 private:
 	void awaitALChange();
 
 	// Configured address variants
-	static uint8_t readByteConfigured(Link::Pointer link, uint16_t slaveIdx, uint16_t address);
-	static uint16_t readShortConfigured(Link::Pointer link, uint16_t slaveIdx, uint16_t address);
-	static uint32_t readWordConfigured(Link::Pointer link, uint16_t slaveIdx, uint16_t address);
-	static void writeByteConfigured(Link::Pointer link, uint16_t slaveIdx, uint16_t address, uint8_t data);
-	static void writeShortConfigured(Link::Pointer link, uint16_t slaveIdx, uint16_t address, uint16_t data);
-	static void writeWordConfigured(Link::Pointer link, uint16_t slaveIdx, uint16_t address, uint32_t data);
+	static uint8_t readByteConfigured(CyclicCommunicationManager::Pointer manager, uint16_t slaveIdx, uint16_t address);
+	static uint16_t readShortConfigured(CyclicCommunicationManager::Pointer manager, uint16_t slaveIdx, uint16_t address);
+	static uint32_t readWordConfigured(CyclicCommunicationManager::Pointer manager, uint16_t slaveIdx, uint16_t address);
+	static void writeByteConfigured(CyclicCommunicationManager::Pointer manager, uint16_t slaveIdx, uint16_t address, uint8_t data);
+	static void writeShortConfigured(CyclicCommunicationManager::Pointer manager, uint16_t slaveIdx, uint16_t address, uint16_t data);
+	static void writeWordConfigured(CyclicCommunicationManager::Pointer manager, uint16_t slaveIdx, uint16_t address, uint32_t data);
 
 	// Positional variants
-	static uint8_t readBytePositional(Link::Pointer link, uint16_t slaveIdx, uint16_t address);
-	static uint16_t readShortPositional(Link::Pointer link, uint16_t slaveIdx, uint16_t address);
-	static uint32_t readWordPositional(Link::Pointer link, uint16_t slaveIdx, uint16_t address);
-	static void writeBytePositional(Link::Pointer link, uint16_t slaveIdx, uint16_t address, uint8_t data);
-	static void writeShortPositional(Link::Pointer link, uint16_t slaveIdx, uint16_t address, uint16_t data);
-	static void writeWordPositional(Link::Pointer link, uint16_t slaveIdx, uint16_t address, uint32_t data);
+	static uint8_t readBytePositional(CyclicCommunicationManager::Pointer manager, uint16_t slaveIdx, uint16_t address);
+	static uint16_t readShortPositional(CyclicCommunicationManager::Pointer manager, uint16_t slaveIdx, uint16_t address);
+	static uint32_t readWordPositional(CyclicCommunicationManager::Pointer manager, uint16_t slaveIdx, uint16_t address);
+	static void writeBytePositional(CyclicCommunicationManager::Pointer manager, uint16_t slaveIdx, uint16_t address, uint8_t data);
+	static void writeShortPositional(CyclicCommunicationManager::Pointer manager, uint16_t slaveIdx, uint16_t address, uint16_t data);
+	static void writeWordPositional(CyclicCommunicationManager::Pointer manager, uint16_t slaveIdx, uint16_t address, uint32_t data);
 	static int newSlaveAddr;
-	Link::Pointer link;
+	
+	CyclicCommunicationManager::Pointer manager;
 
 	// To save requesting them every time
 	uint8_t type;

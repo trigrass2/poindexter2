@@ -31,3 +31,9 @@ Datagram::~Datagram()
 	this->payload = NULL;
 	this->wkc = NULL;
 }
+
+void Datagram::ResetContainer()
+{
+	*this->wkc = 0;
+	this->M(0);
+}

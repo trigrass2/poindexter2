@@ -13,17 +13,20 @@
 
 using namespace Flexpicker;
 
-Master::Master(EtherCAT::Link::Pointer link) : link(link), manager(link, 1)
+Master::Master(EtherCAT::Link::Pointer link) : link(link)
 {
+	// Create the communication manager
+	manager = EtherCAT::CyclicCommunicationManager::Pointer(new EtherCAT::CyclicCommunicationManager(link, INTERPOLATION_PERIOD_MS));
+
 	// Probe for the number of slaves...
-	int numSlaves = EtherCAT::Slave::NumSlaves(link);
+	int numSlaves = EtherCAT::Slave::NumSlaves(manager);
 	if(numSlaves < FLEXPICKER_SLAVES)
 	  throw FlexPickerException("There are less slaves than expected...");
 
 	// Init the slaves
 	for(int i = 0; i < FLEXPICKER_SLAVES; i++)
 	{
-		EtherCAT::Slave::Pointer newSlave(new EtherCAT::Slave(link, i));
+		EtherCAT::Slave::Pointer newSlave(new EtherCAT::Slave(manager, i));
 		slaves[i] = newSlave;
 	}
 
@@ -183,24 +186,22 @@ void Master::Setup()
 		VelocityController::Pointer vc(new VelocityController(logicalAddr));
 		vel[i] = vc;
 
-		manager.RegisterCyclicController(vc);
+		manager->RegisterCyclicController(vc);
 	}
 
-	manager.Run();
-
+	manager->Run();
 	
 	boost::asio::io_service io;
 	boost::asio::deadline_timer t1(io, boost::posix_time::seconds(10));
 	t1.wait();
 
-	for(int i = 0; i < FLEXPICKER_SLAVES; i++)
+	for(int i = 0; i < 1; i++)
 	{
-		boost::asio::deadline_timer t(io, boost::posix_time::seconds(2));
-		t.wait();
-		controlMux.lock();
-		slaves[i]->ChangeStateASync(EtherCAT::Slave::State::OP);
-		controlMux.unlock();
+		slaves[i]->ChangeState(EtherCAT::Slave::State::OP);
 	}
+
+	boost::asio::deadline_timer t2(io, boost::posix_time::seconds(10));
+	t2.wait();
 }
 
 void Master::Teardown()

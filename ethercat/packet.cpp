@@ -31,6 +31,9 @@ void Packet::SendReceive(Link::Pointer link)
 	if(packet_length < ETHERCAT_MINIMUM_PAYLOAD)
 		packet_length = ETHERCAT_MINIMUM_PAYLOAD;
 
+	// Zero the payload
+	memset(payload.data(), 0, packet_length);
+
 	payload[0] = packet_length & 0xFF;       // Pack the length, little endian, 11 bits 
 	payload[1] = (packet_length >> 8) & 0x7;
 	payload[1] |= 0x10; // EtherCAT mode
@@ -54,7 +57,7 @@ void Packet::SendReceive(Link::Pointer link)
 
 	// Send it!
 	link->SendData(payload, dgram_pos);
-
+	
 	// Receive it back again
 	int length = link->ReceiveData(payload);
 	if(length != dgram_pos)

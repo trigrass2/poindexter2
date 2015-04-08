@@ -56,6 +56,8 @@ public:
 			header->lenRCM |= DGRAM_HDR_M_MASK;
 	}
 
+	void ResetContainer();
+
 	unsigned char* payload_ptr() { return payload; }
 	unsigned char* data()    { return storage; }
 	uint16_t datagram_length() { return length() + DGRAM_OVERHEADS; }
