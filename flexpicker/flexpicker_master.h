@@ -12,7 +12,7 @@
 #include <boost/thread.hpp>
 
 #define FLEXPICKER_SLAVES 3
-#define INTERPOLATION_PERIOD_MS 10
+#define INTERPOLATION_PERIOD_MS 1
 #define HOMING_VELOCITY 1000
 #define HOMING_TORQUE_HOME 500
 

@@ -192,29 +192,23 @@ void Master::Setup()
 	manager->Run();
 	
 	boost::asio::io_service io;
-	boost::asio::deadline_timer t1(io, boost::posix_time::seconds(10));
+	boost::asio::deadline_timer t1(io, boost::posix_time::seconds(1));
 	t1.wait();
 
 	for(int i = 0; i < FLEXPICKER_SLAVES; i++)
 	{
 		slaves[i]->ChangeState(EtherCAT::Slave::State::OP);
 	}
-
-	boost::asio::deadline_timer t2(io, boost::posix_time::seconds(10));
-	t2.wait();
 }
 
 void Master::Teardown()
 {
 	for(int i = 0; i < FLEXPICKER_SLAVES; i++)
 	{
-		controlMux.lock();
 		slaves[i]->ChangeState(EtherCAT::Slave::State::INIT, true);
-		controlMux.unlock();
 	}
 
-	runVelocityControlThread = false;
-	controlThread.join();
+	manager->Stop();
 }
 
 void Master::DoHoming()
@@ -267,6 +261,9 @@ void Master::MoveTo(double x, double y, double z)
 	// Run the kinematics!
 	double theta[3];
 	double xyz[3] = { x, y, z };
+	double deltaTheta[3];
+	double maxDelta = 0;
+	double maxSpeed = 30.0;
 
 	for(int i = 0; i < 3; i++)
 		xyz[i] *= 1000; // Kinematics is in mm, we're in m
@@ -277,8 +274,23 @@ void Master::MoveTo(double x, double y, double z)
 	for(int i = 0; i < 3; i++)
 		theta[i] *= -32;
 
+	// Scale the speeds by the amount to move
 	for(int i = 0; i < 3; i++)
-		vel[i]->PositionSetpoint(theta[i], 10);
+	{
+		deltaTheta[i] = theta[i] - vel[i]->Position();
+		if(deltaTheta[i] < 0)
+			deltaTheta[i] = -deltaTheta[i];
+
+		if(deltaTheta[i] > maxDelta)
+			maxDelta = deltaTheta[i];
+	}
+
+	// Normalise. This is just dividing by the max value
+	for(int i = 0; i < 3; i++)
+		deltaTheta[i] /= maxDelta;
+
+	for(int i = 0; i < 3; i++)
+		vel[i]->PositionSetpoint(theta[i], (maxSpeed * deltaTheta[i]));
 
 	std::cout << "Radians: x " << theta[0] << " y " << theta[1] << " z " << theta[2] << std::endl;
 }

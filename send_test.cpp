@@ -102,22 +102,22 @@ int main()
 
 	boost::asio::deadline_timer moveTimer(io, boost::posix_time::seconds(2));
 
-	while(1)
+	for(int i = 0; i < 10; i++)
 	{
 		master.MoveTo(0, 0, -0.65);
-		moveTimer.expires_at(moveTimer.expires_at() + boost::posix_time::seconds(2));
+		moveTimer.expires_at(moveTimer.expires_at() + boost::posix_time::seconds(4));
 		moveTimer.wait();
 
 		master.MoveTo(-0.2, 0, -0.75);
-		moveTimer.expires_at(moveTimer.expires_at() + boost::posix_time::seconds(2));
+		moveTimer.expires_at(moveTimer.expires_at() + boost::posix_time::seconds(4));
 		moveTimer.wait();
 
 		master.MoveTo(0, 0, -0.75);
-		moveTimer.expires_at(moveTimer.expires_at() + boost::posix_time::seconds(2));
+		moveTimer.expires_at(moveTimer.expires_at() + boost::posix_time::seconds(4));
 		moveTimer.wait();
 		
 		master.MoveTo(0.2, 0, -0.75);
-		moveTimer.expires_at(moveTimer.expires_at() + boost::posix_time::seconds(2));
+		moveTimer.expires_at(moveTimer.expires_at() + boost::posix_time::seconds(4));
 		moveTimer.wait();
 	}
 
